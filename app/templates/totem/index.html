@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Tótem Autoservicio — SEMAPA{% endblock %}
+{% block page_title %}Tótem de Autoservicio Ciudadano{% endblock %}
+{% block page_role %}Flores Elia{% endblock %}
+
+{% block extra_css %}
+<style>
+  .totem-frame {
+    max-width: 480px; margin: 0 auto;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.4);
+  }
+  .totem-header {
+    background: linear-gradient(135deg, #0a3d62 0%, #1a5276 100%);
+    padding: 24px; text-align: center;
+  }
+  .totem-body { padding: 24px; }
+  .totem-btn {
+    display: block; width: 100%; padding: 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 15px;
+    font-family: var(--font); cursor: pointer; text-align: center;
+    margin-bottom: 10px; transition: all 0.15s;
+  }
+  .totem-btn:hover { background: rgba(31,156,240,0.1); border-color: var(--accent); }
+  .totem-input {
+    width: 100%; padding: 14px 16px; font-size: 18px;
+    background: var(--bg3); border: 2px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: var(--mono);
+    text-align: center; letter-spacing: 0.1em;
+  }
+  .totem-input:focus { outline: none; border-color: var(--accent); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .key {
+    padding: 16px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 20px; font-family: var(--mono);
+    cursor: pointer; text-align: center; transition: all 0.1s; user-select:none;
+  }
+  .key:active, .key.pressed { background: rgba(31,156,240,0.2); transform: scale(0.95); }
+  .key-wide { grid-column: span 2; }
+  .key-clear { color: var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h2>Prototipo Tótem Ciudadano</h2>
+  <p>Consulta sin teclado físico · CI / N° Medidor / Contrato</p>
+</div>
+
+<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+  <!-- Tótem simulado -->
+  <div style="flex:1;min-width:280px">
+    <div class="totem-frame">
+      <div class="totem-header">
+        <i class="fas fa-water" style="font-size:28px;color:#5dade2;margin-bottom:8px;display:block"></i>
+        <div style="font-size:18px;font-weight:600;letter-spacing:0.05em">SEMAPA</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">Autoservicio Ciudadano</div>
+      </div>
+
+      <div class="totem-body" id="totem-pantalla">
+        <!-- Pantalla inicio -->
+        <div id="screen-inicio">
+          <div style="text-align:center;margin-bottom:20px">
+            <div style="font-size:14px;font-weight:500;margin-bottom:4px">¿Qué desea consultar?</div>
+            <div style="font-size:12px;color:var(--muted)">Toque una opción</div>
+          </div>
+          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+            <i class="fas fa-file-invoice-dollar" style="margin-right:8px;color:var(--warn)"></i>
+            Consultar deuda
+          </button>
+          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+            <i class="fas fa-history" style="margin-right:8px;color:var(--accent)"></i>
+            Historial de consumo
+          </button>
+          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+            <i class="fas fa-file-pdf" style="margin-right:8px;color:var(--danger)"></i>
+            Imprimir preaviso
+          </button>
+        </div>
+
+        <!-- Pantalla consulta -->
+        <div id="screen-consulta" style="display:none">
+          <button onclick="irPantalla('screen-inicio')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0">
+            <i class="fas fa-arrow-left"></i> Volver
+          </button>
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px">Ingrese su CI o N° Medidor</div>
+          <input type="text" id="totem-ci" class="totem-input" placeholder="_ _ _ _ _ _ _ _" readonly/>
+          <div class="keypad">
+            {% for n in range(1,10) %}
+            <div class="key" onclick="presionarTecla('{{n}}')">{{n}}</div>
+            {% endfor %}
+            <div class="key key-clear" onclick="borrarTecla()"><i class="fas fa-backspace"></i></div>
+            <div class="key" onclick="presionarTecla('0')">0</div>
+            <div class="key" style="color:var(--accent2)" onclick="buscar()"><i class="fas fa-search"></i></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px;justify-content:center" onclick="buscar()">
+            <i class="fas fa-search"></i> Consultar
+          </button>
+        </div>
+
+        <!-- Resultado -->
+        <div id="screen-resultado" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datos de prueba -->
+  <div style="flex:1;min-width:240px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:12px">CIs de prueba</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>CI/Medidor</th><th>Deuda (Bs)</th></tr></thead>
+          <tbody>
+            <tr onclick="usarCI('5234891')" style="cursor:pointer"><td style="font-family:var(--mono)">5234891</td><td style="color:var(--danger);font-family:var(--mono)">196.40</td></tr>
+            <tr onclick="usarCI('7891234')" style="cursor:pointer"><td style="font-family:var(--mono)">7891234</td><td style="color:var(--accent2);font-family:var(--mono)">0.00</td></tr>
+            <tr onclick="usarCI('NIT-1234')" style="cursor:pointer"><td style="font-family:var(--mono)">NIT-1234</td><td style="color:var(--danger);font-family:var(--mono)">3,680.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Clic en la fila para cargar en el tótem</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function irPantalla(id) {
+  ['screen-inicio','screen-consulta','screen-resultado'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+
+function presionarTecla(v) {
+  const inp = document.getElementById('totem-ci');
+  if (inp.value.length < 10) inp.value += v;
+}
+
+function borrarTecla() {
+  const inp = document.getElementById('totem-ci');
+  inp.value = inp.value.slice(0, -1);
+}
+
+function usarCI(ci) {
+  irPantalla('screen-consulta');
+  document.getElementById('totem-ci').value = ci;
+}
+
+async function buscar() {
+  const ci = document.getElementById('totem-ci').value.trim();
+  if (!ci) return;
+  irPantalla('screen-resultado');
+  document.getElementById('screen-resultado').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+  const d = await fetch('/totem/api/consultar', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ci})
+  }).then(r => r.json());
+
+  if (!d.ok) {
+    document.getElementById('screen-resultado').innerHTML = `
+      <button onclick="irPantalla('screen-consulta')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
+      <div style="text-align:center;padding:20px;color:var(--danger)"><i class="fas fa-exclamation-circle fa-2x" style="margin-bottom:8px;display:block"></i>${d.error}</div>`;
+    return;
+  }
+
+  const datos = d.datos;
+  const tieneDeuda = datos.deuda_total > 0;
+  const cuotas = datos.cuotas.map(c => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px">${c.periodo}</td>
+      <td style="font-family:var(--mono);font-size:12px;text-align:right">Bs ${c.importe.toFixed(2)}</td>
+      <td><span class="tag ${c.estado==='vencida'?'tag-red':c.estado==='cargo_mora'?'tag-yellow':'tag-blue'}">${c.estado}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('screen-resultado').innerHTML = `
+    <button onclick="irPantalla('screen-consulta')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:600">${datos.nombre}</div>
+      <div style="font-size:11px;color:var(--muted)">${datos.contrato} · ${datos.medidor}</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:${tieneDeuda?'rgba(248,81,73,0.1)':'rgba(0,179,126,0.1)'};border-radius:10px;margin-bottom:16px">
+      <div style="font-size:28px;font-weight:700;font-family:var(--mono);color:${tieneDeuda?'var(--danger)':'var(--accent2)'}">
+        Bs ${datos.deuda_total.toFixed(2)}
+      </div>
+      <div style="font-size:12px;color:var(--muted)">${tieneDeuda?'Deuda pendiente':'Sin deudas ✓'}</div>
+    </div>
+    ${cuotas ? `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>Período</th><th style="text-align:right">Importe</th><th>Estado</th></tr></thead><tbody>${cuotas}</tbody></table>` : ''}
+    <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center" onclick="irPantalla('screen-inicio')">
+      <i class="fas fa-home"></i> Nueva consulta
+    </button>`;
+}
+</script>
+{% endblock %}

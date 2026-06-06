@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>SEMAPA · Tótem Ciudadano</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --blue:    #0066cc;
+      --blue2:   #004fa3;
+      --teal:    #00897b;
+      --teal2:   #00695c;
+      --red:     #e53935;
+      --amber:   #f9a825;
+      --text:    #1a1a2e;
+      --muted:   #546e7a;
+      --bg:      #f0f4f8;
+      --white:   #ffffff;
+      --border:  #cfd8dc;
+      --radius:  16px;
+    }
+
+    html, body {
+      height: 100%; width: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ── Pantalla completa tipo kiosco ── */
+    .kiosk {
+      height: 100vh; width: 100vw;
+      display: flex; flex-direction: column;
+      background: linear-gradient(160deg, #0d47a1 0%, #1565c0 40%, #0288d1 100%);
+    }
+
+    /* ── Header ── */
+    .kiosk-header {
+      padding: 28px 40px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+    .kiosk-logo {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .kiosk-logo-icon {
+      width: 52px; height: 52px; background: rgba(255,255,255,0.2);
+      border-radius: 14px; display: flex; align-items: center;
+      justify-content: center; font-size: 26px;
+    }
+    .kiosk-logo-text { color: white; }
+    .kiosk-logo-text .name { font-size: 22px; font-weight: 700; letter-spacing: 0.04em; }
+    .kiosk-logo-text .sub  { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    .kiosk-clock { color: rgba(255,255,255,0.9); text-align: right; }
+    .kiosk-clock .time { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .kiosk-clock .date { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+    /* ── Body del kiosco ── */
+    .kiosk-body {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 30px 40px;
+    }
+
+    /* ── Tarjeta central ── */
+    .kiosk-card {
+      background: white; border-radius: 24px;
+      width: 100%; max-width: 560px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 24px 28px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 { font-size: 18px; font-weight: 600; color: var(--text); }
+    .card-header p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .card-body { padding: 24px 28px; }
+
+    /* ── Steps navigation ── */
+    .steps-dots {
+      display: flex; gap: 8px; margin-bottom: 22px;
+    }
+    .dot {
+      height: 4px; border-radius: 2px; transition: all 0.3s;
+      background: var(--border);
+    }
+    .dot.active { background: var(--blue); flex: 2; }
+    .dot.done   { background: var(--teal); }
+
+    /* ── Pantalla: menú inicial ── */
+    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .menu-btn {
+      padding: 20px 16px; border-radius: 16px;
+      border: 2px solid var(--border); background: var(--bg);
+      cursor: pointer; text-align: center; transition: all 0.18s;
+      user-select: none;
+    }
+    .menu-btn:active { transform: scale(0.96); }
+    .menu-btn:hover  { border-color: var(--blue); background: #e3f2fd; }
+    .menu-btn .icon  { font-size: 32px; margin-bottom: 10px; display: block; }
+    .menu-btn .label { font-size: 14px; font-weight: 600; color: var(--text); }
+    .menu-btn .desc  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Teclado numérico ── */
+    .input-display {
+      background: var(--bg); border: 2px solid var(--border); border-radius: 12px;
+      padding: 14px 18px; font-size: 22px; font-weight: 600;
+      font-family: 'Courier New', monospace; letter-spacing: 0.1em;
+      text-align: center; color: var(--text); margin-bottom: 16px;
+      min-height: 58px; display: flex; align-items: center; justify-content: center;
+    }
+    .input-display.active { border-color: var(--blue); background: #e8f4fd; }
+    .input-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-align: center; }
+
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .key {
+      padding: 18px 10px; border-radius: 12px; font-size: 22px; font-weight: 500;
+      border: 1.5px solid var(--border); background: white;
+      cursor: pointer; text-align: center; transition: all 0.12s;
+      user-select: none; color: var(--text);
+    }
+    .key:active { background: #e3f2fd; border-color: var(--blue); transform: scale(0.93); }
+    .key-del  { color: var(--red); font-size: 18px; }
+    .key-ok   { background: var(--blue); color: white; border-color: var(--blue); font-size: 15px; font-weight: 600; }
+    .key-ok:active { background: var(--blue2); }
+    .key-wide { grid-column: span 3; padding: 16px; }
+
+    /* ── Resultado ── */
+    .result-name  { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .result-sub   { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .result-deuda {
+      border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 16px;
+    }
+    .deuda-con    { background: #ffebee; }
+    .deuda-sin    { background: #e8f5e9; }
+    .deuda-monto  { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .deuda-con .deuda-monto { color: var(--red); }
+    .deuda-sin .deuda-monto { color: var(--teal); }
+    .deuda-label  { font-size: 13px; margin-top: 6px; color: var(--muted); }
+
+    .cuota-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .cuota-row:last-child { border-bottom: none; }
+    .badge-vencida  { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-pend     { background: #fff8e1; color: #e65100; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+
+    .btn-full {
+      width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600;
+      border: none; cursor: pointer; transition: all 0.15s; margin-top: 8px;
+    }
+    .btn-blue  { background: var(--blue); color: white; }
+    .btn-blue:active  { background: var(--blue2); }
+    .btn-ghost { background: var(--bg); color: var(--muted); border: 1.5px solid var(--border); margin-top: 10px; }
+
+    /* ── Datos del medidor ── */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .info-cell { background: var(--bg); border-radius: 10px; padding: 10px 14px; }
+    .info-cell .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-cell .value { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 3px; font-family: 'Courier New', monospace; }
+
+    /* ── Loader ── */
+    .loader {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 40px 0; gap: 14px;
+    }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid var(--border);
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ── */
+    .kiosk-footer {
+      padding: 14px 40px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .kiosk-footer .hint { color: rgba(255,255,255,0.6); font-size: 12px; }
+    .idle-bar {
+      height: 4px; background: rgba(255,255,255,0.15);
+      border-radius: 2px; width: 200px; overflow: hidden;
+    }
+    .idle-fill {
+      height: 100%; background: rgba(255,255,255,0.5);
+      border-radius: 2px; animation: idle-drain 30s linear forwards;
+    }
+    @keyframes idle-drain { from { width: 100%; } to { width: 0%; } }
+
+    /* Modo paisaje en tablets */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .kiosk-header { padding: 14px 28px; }
+      .kiosk-logo-icon { width: 38px; height: 38px; font-size: 18px; }
+      .kiosk-logo-text .name { font-size: 18px; }
+      .kiosk-clock .time { font-size: 20px; }
+      .kiosk-body { padding: 14px 28px; }
+      .card-header { padding: 16px 20px 12px; }
+      .card-body { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="kiosk">
+
+  <!-- Header -->
+  <div class="kiosk-header">
+    <div class="kiosk-logo">
+      <div class="kiosk-logo-icon">💧</div>
+      <div class="kiosk-logo-text">
+        <div class="name">SEMAPA</div>
+        <div class="sub">Autoservicio Ciudadano · Cochabamba</div>
+      </div>
+    </div>
+    <div class="kiosk-clock">
+      <div class="time" id="clock">--:--</div>
+      <div class="date" id="clock-date">---</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="kiosk-body">
+    <div class="kiosk-card">
+      <div class="card-header">
+        <div class="steps-dots">
+          <div class="dot active" id="dot-1"></div>
+          <div class="dot" id="dot-2"></div>
+          <div class="dot" id="dot-3"></div>
+        </div>
+        <h2 id="card-title">¿Qué desea consultar?</h2>
+        <p id="card-sub">Toque una opción para continuar</p>
+      </div>
+      <div class="card-body" id="card-body">
+
+        <!-- PANTALLA 1: Menú -->
+        <div id="screen-menu">
+          <div class="menu-grid">
+            <div class="menu-btn" onclick="irConsulta()">
+              <span class="icon">🧾</span>
+              <div class="label">Consultar deuda</div>
+              <div class="desc">Saldo pendiente</div>
+            </div>
+            <div class="menu-btn" onclick="irConsulta()">
+              <span class="icon">📊</span>
+              <div class="label">Mi consumo</div>
+              <div class="desc">Historial de lecturas</div>
+            </div>
+            <div class="menu-btn" onclick="irConsulta()">
+              <span class="icon">🖨️</span>
+              <div class="label">Imprimir preaviso</div>
+              <div class="desc">Descargar PDF</div>
+            </div>
+            <div class="menu-btn" onclick="irConsulta()">
+              <span class="icon">📞</span>
+              <div class="label">Contacto SEMAPA</div>
+              <div class="desc">Línea 4429700</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANTALLA 2: Teclado -->
+        <div id="screen-teclado" style="display:none">
+          <div class="input-label">Ingrese su CI, N° Medidor o Contrato</div>
+          <div class="input-display active" id="display">_ _ _ _ _ _ _ _</div>
+          <div class="keypad" id="keypad">
+            <div class="key" onclick="k('1')">1</div>
+            <div class="key" onclick="k('2')">2</div>
+            <div class="key" onclick="k('3')">3</div>
+            <div class="key" onclick="k('4')">4</div>
+            <div class="key" onclick="k('5')">5</div>
+            <div class="key" onclick="k('6')">6</div>
+            <div class="key" onclick="k('7')">7</div>
+            <div class="key" onclick="k('8')">8</div>
+            <div class="key" onclick="k('9')">9</div>
+            <div class="key key-del" onclick="del()">⌫</div>
+            <div class="key" onclick="k('0')">0</div>
+            <div class="key key-ok" onclick="buscar()">Buscar</div>
+          </div>
+          <button class="btn-full btn-ghost" onclick="irMenu()">← Volver al menú</button>
+        </div>
+
+        <!-- PANTALLA 3: Loading -->
+        <div id="screen-loading" style="display:none">
+          <div class="loader">
+            <div class="spinner"></div>
+            <div style="font-size:14px;color:var(--muted)">Consultando el sistema...</div>
+          </div>
+        </div>
+
+        <!-- PANTALLA 4: Resultado -->
+        <div id="screen-resultado" style="display:none"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="kiosk-footer">
+    <span class="hint">Tótem de autoservicio · Sin teclado físico</span>
+    <div class="idle-bar"><div class="idle-fill" id="idle-fill"></div></div>
+    <span class="hint" id="idle-label">Sesión activa</span>
+  </div>
+</div>
+
+<script>
+// ── Reloj ──
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('es-BO', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('clock-date').textContent =
+    now.toLocaleDateString('es-BO', {weekday:'long', day:'numeric', month:'long'});
+}
+tick(); setInterval(tick, 1000);
+
+// ── Estado ──
+let valor = '';
+let idleTimer;
+
+function resetIdle() {
+  clearTimeout(idleTimer);
+  const fill = document.getElementById('idle-fill');
+  fill.style.animation = 'none'; fill.offsetHeight;
+  fill.style.animation = 'idle-drain 30s linear forwards';
+  document.getElementById('idle-label').textContent = 'Sesión activa';
+  idleTimer = setTimeout(() => {
+    irMenu();
+    document.getElementById('idle-label').textContent = 'Sesión reiniciada';
+  }, 30000);
+}
+document.addEventListener('click', resetIdle);
+resetIdle();
+
+// ── Navegación ──
+function setScreen(id, title, sub, dotIdx) {
+  ['screen-menu','screen-teclado','screen-loading','screen-resultado'].forEach(s =>
+    document.getElementById(s).style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  document.getElementById('card-title').textContent = title;
+  document.getElementById('card-sub').textContent   = sub;
+  [1,2,3].forEach(i => {
+    const d = document.getElementById('dot-'+i);
+    d.classList.remove('active','done');
+    if (i < dotIdx) d.classList.add('done');
+    else if (i === dotIdx) d.classList.add('active');
+  });
+}
+
+function irMenu() {
+  valor = '';
+  setScreen('screen-menu','¿Qué desea consultar?','Toque una opción para continuar', 1);
+}
+
+function irConsulta() {
+  valor = '';
+  updateDisplay();
+  setScreen('screen-teclado','Identificación','Sin teclado físico — use los botones', 2);
+}
+
+// ── Teclado ──
+function k(v)  { if (valor.length < 12) { valor += v; updateDisplay(); } }
+function del() { valor = valor.slice(0,-1); updateDisplay(); }
+
+function updateDisplay() {
+  const d = document.getElementById('display');
+  d.textContent = valor || '_ _ _ _ _ _ _ _';
+}
+
+async function buscar() {
+  if (!valor) return;
+  setScreen('screen-loading','Consultando...','Por favor espere', 2);
+  try {
+    const r = await fetch('/totem/api/consultar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ci: valor})
+    });
+    const d = await r.json();
+    if (!d.ok) { mostrarError(d.error); return; }
+    mostrarResultado(d.datos);
+  } catch(e) { mostrarError('Error de conexión'); }
+}
+
+function mostrarError(msg) {
+  setScreen('screen-resultado','Sin resultados','Verifique sus datos e intente de nuevo', 2);
+  document.getElementById('screen-resultado').innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:48px;margin-bottom:14px">❌</div>
+      <div style="font-size:16px;font-weight:600;color:#c62828;margin-bottom:8px">${msg}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">CI válidos de prueba: 5234891 · 7891234 · NIT-1234</div>
+      <button class="btn-full btn-blue" onclick="irConsulta()">Intentar de nuevo</button>
+      <button class="btn-full btn-ghost" onclick="irMenu()">Volver al menú</button>
+    </div>`;
+}
+
+function mostrarResultado(d) {
+  setScreen('screen-resultado','Resultado de consulta','', 3);
+  const tieneDeuda = d.deuda_total > 0;
+  const cuotas = (d.cuotas || []).map(c => `
+    <div class="cuota-row">
+      <span style="font-weight:500">${c.periodo}</span>
+      <span style="font-family:monospace;font-weight:600">Bs ${c.importe.toFixed(2)}</span>
+      <span class="${c.estado==='vencida'?'badge-vencida':'badge-pend'}">${c.estado}</span>
+    </div>`).join('');
+
+  document.getElementById('screen-resultado').innerHTML = `
+    <div class="result-name">${d.nombre}</div>
+    <div class="result-sub">${d.contrato} · Radiobase ${d.radiobase}</div>
+    <div class="result-deuda ${tieneDeuda?'deuda-con':'deuda-sin'}">
+      <div class="deuda-monto">Bs ${d.deuda_total.toFixed(2)}</div>
+      <div class="deuda-label">${tieneDeuda?'Deuda total pendiente':'Sin deudas pendientes ✓'}</div>
+    </div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="label">Medidor IoT</div><div class="value" style="font-size:11px">${d.medidor_iot}</div></div>
+      <div class="info-cell"><div class="label">Consumo m³</div><div class="value">${d.consumo_m3} m³</div></div>
+      <div class="info-cell"><div class="label">Lectura anterior</div><div class="value">${d.lecturaAnterior}</div></div>
+      <div class="info-cell"><div class="label">Lectura actual</div><div class="value">${d.LecturaActual}</div></div>
+    </div>
+    ${cuotas ? `<div style="margin-bottom:14px">${cuotas}</div>` : ''}
+    <button class="btn-full btn-blue" onclick="irMenu()">🏠 Nueva consulta</button>`;
+}
+
+irMenu();
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Alcaldía — SEMAPA{% endblock %}
+{% block page_title %}Dashboard — Alcaldía Municipal{% endblock %}
+{% block page_role %}Franz · Carmen Rosa{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h2>Alcaldía Municipal · Nivel Estratégico Smart City / ODS</h2>
+  <p>Equidad territorial · Sostenibilidad hídrica · Impacto climático · Infraestructura inteligente</p>
+</div>
+
+<!-- Sub-nav dashboards -->
+<div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+  <a href="/dashboard/alcaldia" class="btn btn-primary"><i class="fas fa-city"></i> Alcaldía</a>
+  <a href="/dashboard/semapa"   class="btn"><i class="fas fa-tint"></i> SEMAPA</a>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-4" style="margin-bottom:24px" id="kpi-grid">
+  <div class="card"><div class="card-title">Consumo total hoy</div><div class="card-value" id="k-consumo">—</div><div class="card-sub">m³/día</div></div>
+  <div class="card"><div class="card-title">Consumo per cápita</div><div class="card-value" id="k-percapita">—</div><div class="card-sub">L/hab/día · Meta ONU: 300 L</div></div>
+  <div class="card"><div class="card-title">Medidores activos</div><div class="card-value" style="color:var(--accent2)" id="k-activos">—</div><div class="card-sub" id="k-fallas">Calculando...</div></div>
+  <div class="card"><div class="card-title">Alertas sobreconsumo</div><div class="card-value" style="color:var(--danger)" id="k-alertas">—</div><div class="card-sub" id="k-estres">zonas en estrés hídrico</div></div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:24px">
+  <!-- Consumo por distrito -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:6px">Consumo por distrito (m³)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">¿Qué zonas tienen brechas de acceso?</div>
+    <canvas id="chart-distritos" height="260"></canvas>
+  </div>
+  <!-- Consumo diario -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:6px">Consumo total diario — Feb/Mar/Abr 2026</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">¿La ciudad consume más agua de la disponible?</div>
+    <canvas id="chart-diario" height="260"></canvas>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:24px">
+  <!-- Clima vs consumo -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:6px">Temperatura vs consumo</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">¿Qué efecto tiene el clima sobre la demanda?</div>
+    <canvas id="chart-clima" height="220"></canvas>
+  </div>
+  <!-- Sensores -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:14px">Estado de infraestructura IoT</div>
+    <canvas id="chart-sensores" height="180"></canvas>
+    <div id="sensor-detalle" style="margin-top:14px"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CHART_DEFAULTS = {
+  color: '#7d8590',
+  plugins: { legend: { labels: { color: '#7d8590', font: { family: 'IBM Plex Sans' } } } },
+};
+
+async function load() {
+  const [resumen, distritos, diario, clima, sensores] = await Promise.all([
+    fetch('/dashboard/api/resumen').then(r => r.json()),
+    fetch('/dashboard/api/distritos').then(r => r.json()),
+    fetch('/dashboard/api/consumo-diario').then(r => r.json()),
+    fetch('/dashboard/api/clima').then(r => r.json()),
+    fetch('/dashboard/api/sensores').then(r => r.json()),
+  ]);
+
+  // KPIs
+  document.getElementById('k-consumo').textContent   = resumen.consumo_total_m3.toLocaleString();
+  document.getElementById('k-percapita').textContent = resumen.consumo_per_capita_L + ' L';
+  document.getElementById('k-activos').textContent   = resumen.medidores_activos.toLocaleString();
+  document.getElementById('k-fallas').textContent    = sensores.pct_fallas + '% con fallas';
+  document.getElementById('k-alertas').textContent   = resumen.alertas_sobreconsumo;
+  document.getElementById('k-estres').textContent    = resumen.zonas_estres_hidrico + ' zonas en estrés hídrico';
+
+  // Chart: distritos
+  new Chart(document.getElementById('chart-distritos'), {
+    type: 'bar',
+    data: {
+      labels: distritos.map(d => d.nombre.split('–')[0].trim()),
+      datasets: [{
+        label: 'm³',
+        data: distritos.map(d => d.consumo_m3),
+        backgroundColor: distritos.map(d =>
+          d.consumo_m3 > 44000 ? 'rgba(248,81,73,0.7)' :
+          d.consumo_m3 > 30000 ? 'rgba(227,179,65,0.7)' :
+                                  'rgba(31,156,240,0.7)'
+        ),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      responsive: true,
+      plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7d8590' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // Chart: consumo diario
+  const fechas = diario.map(d => d.fecha);
+  const meses  = ['Feb', 'Mar', 'Abr'];
+  const colors = ['rgba(31,156,240,0.8)','rgba(0,179,126,0.8)','rgba(163,113,247,0.8)'];
+  const datasets = meses.map((mes, i) => ({
+    label: mes,
+    data: diario.filter(d => d.mes === mes).map(d => d.consumo_m3),
+    borderColor: colors[i],
+    backgroundColor: colors[i].replace('0.8','0.1'),
+    fill: true, tension: 0.3, pointRadius: 2,
+  }));
+  new Chart(document.getElementById('chart-diario'), {
+    type: 'line',
+    data: { labels: Array.from({length:31},(_,i)=>i+1), datasets },
+    options: {
+      ...CHART_DEFAULTS,
+      responsive: true,
+      scales: {
+        x: { ticks: { color: '#7d8590', font:{size:10} }, grid: { color:'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7d8590' }, grid: { color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // Chart: clima
+  new Chart(document.getElementById('chart-clima'), {
+    type: 'bar',
+    data: {
+      labels: clima.map(c => `S${c.semana}`),
+      datasets: [
+        { label: 'Consumo (m³)', data: clima.map(c=>c.consumo_m3), backgroundColor: 'rgba(31,156,240,0.6)', yAxisID:'y', borderRadius:4 },
+        { label: 'Temp (°C)',    data: clima.map(c=>c.temp_c),     type:'line', borderColor:'#e3b341', backgroundColor:'rgba(227,179,65,0.1)', fill:true, tension:0.4, yAxisID:'y1', pointRadius:3 },
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      responsive: true,
+      scales: {
+        x:  { ticks:{color:'#7d8590',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:  { ticks:{color:'#7d8590'}, grid:{color:'rgba(255,255,255,0.04)'}, position:'left' },
+        y1: { ticks:{color:'#e3b341'}, position:'right', grid:{drawOnChartArea:false} }
+      }
+    }
+  });
+
+  // Chart: sensores doughnut
+  new Chart(document.getElementById('chart-sensores'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Activos','Con fallas'],
+      datasets: [{ data:[sensores.activos, sensores.fallas], backgroundColor:['rgba(0,179,126,0.8)','rgba(248,81,73,0.7)'], borderWidth:0 }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      cutout: '68%',
+      plugins: { legend: { labels: { color:'#7d8590', font:{family:'IBM Plex Sans'} } } }
+    }
+  });
+
+  // Sensor detalle
+  const det = document.getElementById('sensor-detalle');
+  det.innerHTML = sensores.modelos.map(m =>
+    `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(48,54,61,0.5)">
+      <span style="color:var(--muted)">${m.modelo}</span>
+      <span style="font-family:var(--mono)">${m.cantidad.toLocaleString()}</span>
+    </div>`
+  ).join('');
+}
+
+load();
+</script>
+{% endblock %}

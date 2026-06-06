@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Lector Manual — SEMAPA{% endblock %}
+{% block page_title %}Registro de Lecturas Manuales{% endblock %}
+{% block page_role %}Kevin Trujillo{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h2>Lector de Medidores · Campo</h2>
+  <p>Web responsive · MACs IoT formato <code>XX:XX:XX:XX:XX:XX</code> · Compatible con estructura CSV</p>
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <a href="/lector/movil" class="btn btn-success" target="_blank"><i class="fas fa-mobile-alt"></i> Abrir vista móvil standalone</a>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:16px">Registrar lectura</div>
+    <div class="form-group">
+      <label class="form-label">MAC del medidor IoT <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">(medidor_iot del CSV)</span></label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="inp-medidor" class="form-control" placeholder="7D:16:0E:17:7E:AA" style="font-family:var(--mono)" oninput="this.value=this.value.toUpperCase()"/>
+        <button class="btn" onclick="buscarMedidor()"><i class="fas fa-search"></i></button>
+      </div>
+    </div>
+
+    <div id="info-medidor" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:6px;font-size:12px"></div>
+
+    <div class="form-group">
+      <label class="form-label">LecturaActual (m³) <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">(campo CSV)</span></label>
+      <input type="number" id="inp-lectura" class="form-control" placeholder="0.00" step="0.1" oninput="validar()"/>
+    </div>
+    <div id="alerta-consumo" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:6px;font-size:12px"></div>
+    <div class="form-group">
+      <label class="form-label">Observación</label>
+      <select id="inp-obs" class="form-control">
+        <option value="">Sin observación</option>
+        <option value="medidor_dañado">Medidor dañado</option>
+        <option value="acceso_denegado">Sin acceso al medidor</option>
+        <option value="lectura_estimada">Lectura estimada</option>
+        <option value="medidor_reemplazado">Medidor reemplazado</option>
+      </select>
+    </div>
+    <button class="btn btn-success" id="btn-reg" style="width:100%" onclick="registrarLectura()" disabled>
+      <i class="fas fa-save"></i> Registrar lectura
+    </button>
+    <div id="resultado-lectura" style="margin-top:12px;display:none"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:500">Lecturas registradas (sesión)</div>
+      <button class="btn" onclick="cargarPendientes()" style="font-size:11px;padding:4px 10px"><i class="fas fa-sync"></i></button>
+    </div>
+    <div id="lista-lecturas">
+      <div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0">Sin lecturas aún</div>
+    </div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">MACs de prueba (del CSV real)</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn" onclick="cargarMAC('7D:16:0E:17:7E:AA')" style="justify-content:space-between;font-size:11px">
+          <span style="font-family:var(--mono)">7D:16:0E:17:7E:AA</span><span style="color:var(--muted)">Juan C. Mendoza · RB-2</span>
+        </button>
+        <button class="btn" onclick="cargarMAC('D8:E9:8F:ED:58:69')" style="justify-content:space-between;font-size:11px">
+          <span style="font-family:var(--mono)">D8:E9:8F:ED:58:69</span><span style="color:var(--muted)">María Flores · RB-2</span>
+        </button>
+        <button class="btn" onclick="cargarMAC('13:2B:00:FD:4D:C3')" style="justify-content:space-between;font-size:11px">
+          <span style="font-family:var(--mono)">13:2B:00:FD:4D:C3</span><span style="color:var(--muted)">COBOCE S.A. · RB-1</span>
+        </button>
+        <button class="btn" onclick="cargarMAC('F8:D4:A4:6F:74:3A')" style="justify-content:space-between;font-size:11px">
+          <span style="font-family:var(--mono)">F8:D4:A4:6F:74:3A</span><span style="color:var(--muted)">Mercado Calatayud · RB-14</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let medidorActual = null;
+
+function cargarMAC(mac) {
+  document.getElementById('inp-medidor').value = mac;
+  buscarMedidor();
+}
+
+async function buscarMedidor() {
+  const mac = document.getElementById('inp-medidor').value.trim().toUpperCase();
+  if (mac.length < 11) return;
+  const d = await fetch('/lector/api/buscar-medidor', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({medidor_id: mac})
+  }).then(r=>r.json());
+  const info = document.getElementById('info-medidor');
+  if (!d.ok) { info.style.display='block'; info.innerHTML=`<span style="color:var(--danger)">${d.error}</span>`; medidorActual=null; return; }
+  medidorActual = d;
+  info.style.display = 'block';
+  info.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Cliente</span><span>${d.info.nombre}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Contrato</span><span style="font-family:var(--mono)">${d.info.contrato}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Radiobase</span><span>RB-${d.info.radiobase}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">lecturaAnterior</span><span style="font-family:var(--mono);color:var(--accent)">${d.info.lecturaAnterior}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">LecturaActual (CSV)</span><span style="font-family:var(--mono);color:var(--accent2)">${d.info.ultima_lectura}</span></div>`;
+  document.getElementById('inp-lectura').value = '';
+  document.getElementById('btn-reg').disabled = true;
+  document.getElementById('inp-lectura').focus();
+}
+
+function validar() {
+  const lect = parseFloat(document.getElementById('inp-lectura').value);
+  const ant  = medidorActual?.info?.ultima_lectura;
+  const al   = document.getElementById('alerta-consumo');
+  const btn  = document.getElementById('btn-reg');
+  if (isNaN(lect) || lect <= 0) { al.style.display='none'; btn.disabled=true; return; }
+  const consumo = ant ? lect - ant : 0;
+  if (ant && lect < ant) {
+    al.style.display='block'; al.style.background='rgba(248,81,73,0.1)'; al.style.color='var(--danger)';
+    al.textContent = '⚠ Lectura menor que la anterior (' + ant + '). Verifique.'; btn.disabled=true; return;
+  }
+  al.style.display='block'; al.style.background='rgba(0,179,126,0.1)'; al.style.color='var(--accent2)';
+  al.textContent = '✓ Consumo período: ' + consumo + ' m³' + (consumo > 200 ? ' — consumo alto, verifique' : '');
+  btn.disabled = false;
+}
+
+async function registrarLectura() {
+  const mac  = document.getElementById('inp-medidor').value.trim().toUpperCase();
+  const lect = parseFloat(document.getElementById('inp-lectura').value);
+  const obs  = document.getElementById('inp-obs').value;
+  const ant  = medidorActual?.info?.ultima_lectura ?? 0;
+  const d = await fetch('/lector/api/registrar-lectura', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({medidor_id: mac, lectura: lect, lectura_anterior: ant, observacion: obs, usuario: 'campo_01'})
+  }).then(r=>r.json());
+  const res = document.getElementById('resultado-lectura');
+  res.style.display='block';
+  if (!d.ok) { res.innerHTML=`<div style="color:var(--danger)">${d.error}</div>`; return; }
+  res.innerHTML = `<div style="background:rgba(0,179,126,0.08);border:1px solid rgba(0,179,126,0.3);border-radius:6px;padding:12px;font-size:12px">
+    <i class="fas fa-check-circle" style="color:var(--accent2)"></i>
+    Ref: <span style="font-family:var(--mono);color:var(--accent2)">${d.referencia}</span>
+    · fechaHoraLectura: <span style="font-family:var(--mono)">${d.registro.fechaHoraLectura}</span>
+    <span class="tag tag-yellow" style="margin-left:6px">pendiente_sync</span>
+  </div>`;
+  cargarPendientes();
+}
+
+async function cargarPendientes() {
+  const d = await fetch('/lector/api/lecturas-pendientes').then(r=>r.json());
+  const lista = document.getElementById('lista-lecturas');
+  if (!d.lecturas.length) { lista.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0">Sin lecturas aún</div>'; return; }
+  lista.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">${d.total} lectura(s) en sesión</div>
+    <div class="table-wrap"><table>
+    <thead><tr><th>MAC (medidor_iot)</th><th>LecturaActual</th><th>fechaHoraLectura</th><th>Estado</th></tr></thead>
+    <tbody>${d.lecturas.map(l=>`<tr>
+      <td style="font-family:var(--mono);font-size:10px">${l.medidor_iot}</td>
+      <td style="font-family:var(--mono);font-size:11px">${l.LecturaActual} m³</td>
+      <td style="font-family:var(--mono);font-size:10px">${l.fechaHoraLectura}</td>
+      <td><span class="tag tag-yellow" style="font-size:10px">${l.estado}</span></td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+</script>
+{% endblock %}

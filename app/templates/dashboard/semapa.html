@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard SEMAPA{% endblock %}
+{% block page_title %}Dashboard — SEMAPA Operaciones{% endblock %}
+{% block page_role %}Franz · Carmen Rosa{% endblock %}
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="section-header">
+  <h2>SEMAPA · Panel Operativo</h2>
+  <p>Estado de la red · Medidores activos · Consumo por zona</p>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+  <a href="/dashboard/alcaldia" class="btn"><i class="fas fa-city"></i> Alcaldía</a>
+  <a href="/dashboard/semapa"   class="btn btn-primary"><i class="fas fa-tint"></i> SEMAPA</a>
+</div>
+<div class="grid grid-4" style="margin-bottom:24px" id="kpi-semapa">
+  <div class="card"><div class="card-title">Total medidores</div><div class="card-value">120.000</div><div class="card-sub">5 modelos distintos</div></div>
+  <div class="card"><div class="card-title">Activos</div><div class="card-value" style="color:var(--accent2)">117.234</div><div class="card-sub">97.7 % operativos</div></div>
+  <div class="card"><div class="card-title">Con fallas</div><div class="card-value" style="color:var(--danger)">2.766</div><div class="card-sub">2.3 % fuera de línea</div></div>
+  <div class="card"><div class="card-title">Radiobases</div><div class="card-value">14</div><div class="card-sub">LoRaWAN activas</div></div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:14px">Distribución por modelo de medidor</div>
+    <canvas id="chart-modelos" height="240"></canvas>
+  </div>
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:14px">Top 5 zonas por consumo (m³)</div>
+    <canvas id="chart-zonas" height="240"></canvas>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+async function load() {
+  const s = await fetch('/dashboard/api/sensores').then(r=>r.json());
+  const d = await fetch('/dashboard/api/distritos').then(r=>r.json());
+  const opts = { responsive:true, plugins:{ legend:{ labels:{ color:'#7d8590', font:{family:'IBM Plex Sans'} } } }, scales:{ x:{ticks:{color:'#7d8590'},grid:{color:'rgba(255,255,255,0.04)'}}, y:{ticks:{color:'#7d8590'},grid:{color:'rgba(255,255,255,0.04)'}} } };
+  new Chart(document.getElementById('chart-modelos'),{type:'doughnut',data:{labels:s.modelos.map(m=>m.modelo),datasets:[{data:s.modelos.map(m=>m.cantidad),backgroundColor:['rgba(31,156,240,0.7)','rgba(0,179,126,0.7)','rgba(163,113,247,0.7)','rgba(227,179,65,0.7)','rgba(248,81,73,0.7)'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7d8590',font:{family:'IBM Plex Sans'},boxWidth:12}}}}});
+  const top5 = d.sort((a,b)=>b.consumo_m3-a.consumo_m3).slice(0,5);
+  new Chart(document.getElementById('chart-zonas'),{type:'bar',data:{labels:top5.map(z=>z.nombre.split('–')[0].trim()),datasets:[{label:'m³',data:top5.map(z=>z.consumo_m3),backgroundColor:'rgba(163,113,247,0.7)',borderRadius:4}]},options:{...opts,plugins:{...opts.plugins,legend:{display:false}}}});
+}
+load();
+</script>
+{% endblock %}

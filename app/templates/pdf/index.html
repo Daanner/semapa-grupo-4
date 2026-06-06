@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Preavisos PDF — SEMAPA{% endblock %}
+{% block page_title %}Generación de Preavisos PDF{% endblock %}
+{% block page_role %}Alan Lopez · Miriam Apaza{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h2>Preavisos PDF</h2>
+  <p>Formato rollo térmico 55mm · Formato media carta · QR de validación</p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:16px">Generar preaviso</div>
+    <div class="form-group">
+      <label class="form-label">Contrato</label>
+      <select id="sel-contrato" class="form-control">
+        <option value="C-001234">C-001234 — Juan Carlos Mendoza</option>
+        <option value="C-005678">C-005678 — María Flores Quispe</option>
+        <option value="C-009999">C-009999 — COBOCE S.A.</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Período</label>
+      <input type="month" id="sel-periodo" class="form-control" value="2026-05"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Formato</label>
+      <div style="display:flex;gap:10px">
+        <label style="flex:1;cursor:pointer">
+          <input type="radio" name="formato" value="media_carta" checked style="margin-right:6px"/>
+          <span style="font-size:13px"><i class="fas fa-file" style="color:var(--accent)"></i> Media carta</span>
+        </label>
+        <label style="flex:1;cursor:pointer">
+          <input type="radio" name="formato" value="rollo" style="margin-right:6px"/>
+          <span style="font-size:13px"><i class="fas fa-scroll" style="color:var(--warn)"></i> Rollo 55mm</span>
+        </label>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="previsualizar()">
+      <i class="fas fa-eye"></i> Previsualizar
+    </button>
+  </div>
+
+  <div class="card" id="preview-card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:16px">Vista previa</div>
+    <div id="preview-content" style="color:var(--muted);font-size:12px;text-align:center;padding:40px 0">
+      <i class="fas fa-file-pdf" style="font-size:32px;opacity:0.3;display:block;margin-bottom:10px"></i>
+      Seleccione un contrato y presione "Previsualizar"
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function previsualizar() {
+  const contrato = document.getElementById('sel-contrato').value;
+  const periodo  = document.getElementById('sel-periodo').value;
+  const formato  = document.querySelector('input[name=formato]:checked').value;
+  const prev = document.getElementById('preview-content');
+  prev.innerHTML = '<div style="text-align:center;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Generando...</div>';
+
+  const d = await fetch('/pdf/api/preview', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contrato, periodo, formato})
+  }).then(r => r.json());
+
+  if (!d.ok) { prev.innerHTML = `<div style="color:var(--danger)">${d.error}</div>`; return; }
+
+  const esRollo = formato === 'rollo';
+  const hist = d.historial.map(h =>
+    `<tr><td style="font-family:var(--mono);font-size:11px">${h.periodo}</td><td style="font-family:var(--mono);font-size:11px;text-align:right">${h.consumo} m³</td><td style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--accent)">Bs ${h.importe.toFixed(2)}</td></tr>`
+  ).join('');
+
+  prev.innerHTML = `
+    <div style="background:white;color:#111;border-radius:6px;padding:${esRollo?'10px':'16px'};max-width:${esRollo?'200px':'100%'};margin:0 auto;font-family:'IBM Plex Mono',monospace;font-size:${esRollo?'9px':'11px'}">
+      <div style="text-align:center;border-bottom:1px dashed #ccc;padding-bottom:6px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:${esRollo?'11px':'14px'}">SEMAPA</div>
+        <div style="font-size:${esRollo?'8px':'10px'}">Servicio Municipal de Agua Potable</div>
+        <div style="font-size:${esRollo?'8px':'10px'}">Cochabamba, Bolivia</div>
+      </div>
+      <div style="margin-bottom:6px"><strong>PREAVISO DE CONSUMO</strong></div>
+      <div>Período: ${d.periodo}</div>
+      <div>Contrato: ${d.contrato}</div>
+      <div>CI/NIT: ${d.datos.ci}</div>
+      <div>${d.datos.nombre}</div>
+      <div style="font-size:${esRollo?'8px':'10px'};color:#555">${d.datos.direccion}</div>
+      <div style="margin:8px 0;border-top:1px dashed #ccc;padding-top:6px">
+        <div style="display:flex;justify-content:space-between"><span>Consumo:</span><span>${d.datos.consumo_m3} m³</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Tarifa:</span><span>${d.datos.tarifa}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:${esRollo?'11px':'13px'};font-weight:700;margin-top:4px"><span>TOTAL:</span><span>Bs ${d.datos.importe.toFixed(2)}</span></div>
+        <div style="font-size:${esRollo?'8px':'10px'};color:#555">Vence: ${d.vencimiento}</div>
+      </div>
+      ${!esRollo ? `<div style="border-top:1px dashed #ccc;padding-top:6px;margin-top:4px"><div style="font-size:10px;font-weight:600;margin-bottom:4px">HISTORIAL</div><table style="width:100%;border-collapse:collapse">${hist}</table></div>` : ''}
+      <div style="text-align:center;margin-top:8px;border-top:1px dashed #ccc;padding-top:8px">
+        <div style="font-size:${esRollo?'16px':'24px'}">▓▓▒▒▓▒▓▓</div>
+        <div style="font-size:${esRollo?'7px':'9px'};color:#555">QR: semapa.gob.bo/validar/${d.contrato}</div>
+        <div style="font-size:${esRollo?'7px':'9px'};color:#555">${d.codigo_pago}</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;text-align:center">
+      <span class="tag tag-${esRollo?'yellow':'blue'}">${esRollo?'Formato rollo 55mm':'Formato media carta'}</span>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">En producción: ReportLab generará el PDF real</div>
+    </div>`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#0d47a1"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>SEMAPA · Lector de Campo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --blue:   #1565c0; --blue2: #0d47a1; --blue-lt: #e3f2fd;
+      --green:  #2e7d32; --green-lt: #e8f5e9;
+      --amber:  #e65100; --amber-lt: #fff3e0;
+      --red:    #c62828; --red-lt: #ffebee;
+      --gray:   #546e7a; --bg: #f5f7fa; --white: #fff; --border: #cfd8dc;
+      --radius: 14px; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    html, body { min-height: 100vh; background: var(--bg); font-family: var(--font); color: #1a1a2e; }
+
+    /* ── App shell ── */
+    .app-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--blue); color: white;
+      padding: 0 16px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .app-bar .title { font-size: 17px; font-weight: 600; }
+    .app-bar .badge { background: rgba(255,255,255,0.2); font-size: 11px; padding: 3px 8px; border-radius: 10px; }
+    .app-bar .sync-btn {
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+
+    .content { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+    /* ── Cards ── */
+    .card { background: var(--white); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 14px; overflow: hidden; }
+    .card-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+    .card-header h3 { font-size: 14px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.04em; }
+    .card-body { padding: 14px 16px; }
+
+    /* ── Form ── */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--gray); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; padding: 12px 14px; font-size: 16px; /* 16px prevents iOS zoom */
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--white); color: #1a1a2e; font-family: var(--font);
+      appearance: none;
+    }
+    .field input:focus, .field select:focus {
+      outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+    }
+    .field.mono input { font-family: 'Courier New', monospace; letter-spacing: 0.05em; }
+
+    .btn {
+      width: 100%; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600;
+      border: none; cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:active { background: var(--blue2); transform: scale(0.98); }
+    .btn-success { background: var(--green); color: white; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--gray); margin-top: 8px; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Medidor info chip ── */
+    .medidor-chip {
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+      background: var(--blue-lt); border: 1.5px solid #90caf9; display: none;
+    }
+    .medidor-chip .mac { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 600; color: var(--blue); }
+    .medidor-chip .nombre { font-size: 14px; font-weight: 600; margin-top: 4px; }
+    .medidor-chip .dir  { font-size: 12px; color: var(--gray); margin-top: 2px; }
+    .medidor-chip .meta { display: flex; gap: 12px; margin-top: 8px; }
+    .meta-item { flex: 1; background: white; border-radius: 8px; padding: 8px; text-align: center; }
+    .meta-item .val { font-size: 15px; font-weight: 700; font-family: 'Courier New', monospace; }
+    .meta-item .lbl { font-size: 10px; color: var(--gray); margin-top: 2px; }
+
+    /* ── Alerta consumo ── */
+    .alerta {
+      border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-top: 10px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .alerta-ok  { background: var(--green-lt); color: var(--green); border: 1px solid #a5d6a7; }
+    .alerta-err { background: var(--red-lt);   color: var(--red);   border: 1px solid #ef9a9a; }
+    .alerta-warn{ background: var(--amber-lt); color: var(--amber); border: 1px solid #ffcc80; }
+
+    /* ── Lista lecturas ── */
+    .lectura-item {
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .lectura-item:last-child { border-bottom: none; }
+    .lectura-mac  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--gray); }
+    .lectura-val  { font-size: 15px; font-weight: 700; }
+    .lectura-meta { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .badge-sync { background: var(--amber-lt); color: var(--amber); font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
+    .badge-ok   { background: var(--green-lt); color: var(--green); font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
+
+    /* ── Fab ── */
+    .fab {
+      position: fixed; bottom: 24px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--blue); color: white; border: none;
+      font-size: 28px; cursor: pointer; box-shadow: 0 4px 14px rgba(21,101,192,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .fab:active { transform: scale(0.93); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #1a1a2e; color: white; padding: 10px 18px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s;
+      white-space: nowrap; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--white); border-top: 1px solid var(--border);
+      display: flex; padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      flex: 1; padding: 10px 0; text-align: center; cursor: pointer;
+      font-size: 10px; color: var(--gray); transition: color 0.15s;
+    }
+    .nav-item.active { color: var(--blue); }
+    .nav-item .nav-icon { font-size: 22px; display: block; margin-bottom: 2px; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    body { padding-bottom: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="app-bar">
+  <span class="title">📡 Lector de Campo</span>
+  <button class="sync-btn" onclick="sincronizar()">⟳ Sync</button>
+</div>
+
+<div class="content">
+
+  <!-- TAB 1: Registrar -->
+  <div class="tab-content active" id="tab-registrar">
+    <div class="card">
+      <div class="card-header"><h3>Buscar medidor</h3></div>
+      <div class="card-body">
+        <div class="field mono">
+          <label>MAC del medidor IoT</label>
+          <input type="text" id="inp-mac" placeholder="7D:16:0E:17:7E:AA" autocomplete="off" autocorrect="off" spellcheck="false" oninput="this.value=this.value.toUpperCase()" onblur="buscarMedidor()"/>
+        </div>
+        <div class="medidor-chip" id="chip-medidor">
+          <div class="mac" id="chip-mac"></div>
+          <div class="nombre" id="chip-nombre"></div>
+          <div class="dir" id="chip-dir"></div>
+          <div class="meta">
+            <div class="meta-item">
+              <div class="val" id="chip-ant">—</div>
+              <div class="lbl">Lect. anterior</div>
+            </div>
+            <div class="meta-item">
+              <div class="val" id="chip-actual">—</div>
+              <div class="lbl">Lect. actual</div>
+            </div>
+            <div class="meta-item">
+              <div class="val" id="chip-rb">—</div>
+              <div class="lbl">Radiobase</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-lectura" style="display:none">
+      <div class="card-header"><h3>Nueva lectura</h3></div>
+      <div class="card-body">
+        <div class="field">
+          <label>Lectura actual (m³)</label>
+          <input type="number" id="inp-lectura" placeholder="0" inputmode="decimal" min="0" step="0.1" oninput="validarLectura()"/>
+        </div>
+        <div class="alerta" id="alerta-lectura"></div>
+        <div class="field" style="margin-top:14px">
+          <label>Observación</label>
+          <select id="inp-obs">
+            <option value="">Sin observación</option>
+            <option value="medidor_dañado">Medidor dañado</option>
+            <option value="acceso_denegado">Sin acceso</option>
+            <option value="lectura_estimada">Lectura estimada</option>
+            <option value="medidor_reemplazado">Medidor reemplazado</option>
+          </select>
+        </div>
+        <button class="btn btn-success" id="btn-registrar" onclick="registrar()" disabled>
+          💾 Registrar lectura
+        </button>
+        <button class="btn btn-outline" onclick="limpiar()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Medidores de prueba -->
+    <div class="card">
+      <div class="card-header"><h3>Medidores de prueba</h3></div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-outline" style="font-family:monospace;font-size:12px" onclick="cargarMAC('7D:16:0E:17:7E:AA')">7D:16:0E:17:7E:AA — Juan Mendoza</button>
+          <button class="btn btn-outline" style="font-family:monospace;font-size:12px" onclick="cargarMAC('D8:E9:8F:ED:58:69')">D8:E9:8F:ED:58:69 — María Flores</button>
+          <button class="btn btn-outline" style="font-family:monospace;font-size:12px" onclick="cargarMAC('13:2B:00:FD:4D:C3')">13:2B:00:FD:4D:C3 — COBOCE S.A.</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Historial -->
+  <div class="tab-content" id="tab-historial">
+    <div class="card">
+      <div class="card-header"><h3>Lecturas de esta sesión</h3></div>
+      <div class="card-body" id="lista-historial">
+        <div style="text-align:center;color:var(--gray);padding:30px 0;font-size:14px">
+          Aún no hay lecturas registradas
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-registrar" onclick="switchTab('registrar')">
+    <span class="nav-icon">📝</span>Registrar
+  </div>
+  <div class="nav-item" id="nav-historial" onclick="switchTab('historial')">
+    <span class="nav-icon">📋</span>Historial
+    <span id="nav-badge" style="display:none;font-size:10px;background:var(--blue);color:white;padding:1px 5px;border-radius:8px;margin-left:2px"></span>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let medidorActual = null;
+let historial = [];
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  if (tab === 'historial') renderHistorial();
+}
+
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function cargarMAC(mac) {
+  document.getElementById('inp-mac').value = mac;
+  buscarMedidor();
+}
+
+async function buscarMedidor() {
+  const mac = document.getElementById('inp-mac').value.trim().toUpperCase();
+  if (mac.length < 11) return;
+  try {
+    const r = await fetch('/lector/api/buscar-medidor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({medidor_id: mac})
+    });
+    const d = await r.json();
+    if (!d.ok) { toast('❌ ' + d.error); ocultarChip(); return; }
+    medidorActual = d;
+    mostrarChip(d);
+  } catch(e) { toast('Error de conexión'); }
+}
+
+function mostrarChip(d) {
+  document.getElementById('chip-mac').textContent    = d.medidor;
+  document.getElementById('chip-nombre').textContent = d.info.nombre;
+  document.getElementById('chip-dir').textContent    = d.info.direccion;
+  document.getElementById('chip-ant').textContent    = d.info.ultima_lectura ?? '—';
+  document.getElementById('chip-actual').textContent = d.info.lecturaAnterior ?? '—';
+  document.getElementById('chip-rb').textContent     = 'RB-' + d.info.radiobase;
+  document.getElementById('chip-medidor').style.display = 'block';
+  document.getElementById('card-lectura').style.display  = 'block';
+  document.getElementById('inp-lectura').focus();
+}
+
+function ocultarChip() {
+  medidorActual = null;
+  document.getElementById('chip-medidor').style.display = 'none';
+  document.getElementById('card-lectura').style.display  = 'none';
+}
+
+function validarLectura() {
+  const lect = parseFloat(document.getElementById('inp-lectura').value);
+  const ant  = medidorActual?.info?.ultima_lectura;
+  const al   = document.getElementById('alerta-lectura');
+  const btn  = document.getElementById('btn-registrar');
+  al.style.display = 'none';
+  if (isNaN(lect) || lect <= 0) { btn.disabled = true; return; }
+  if (ant && lect < ant) {
+    al.className = 'alerta alerta-err'; al.style.display = 'flex';
+    al.textContent = '⚠️ La lectura es menor que la anterior (' + ant + ' m³)';
+    btn.disabled = true; return;
+  }
+  const consumo = ant ? lect - ant : 0;
+  if (consumo > 200) {
+    al.className = 'alerta alerta-warn'; al.style.display = 'flex';
+    al.textContent = '⚡ Consumo alto detectado: ' + consumo + ' m³ — verifique el medidor';
+  } else if (consumo >= 0) {
+    al.className = 'alerta alerta-ok'; al.style.display = 'flex';
+    al.textContent = '✓ Consumo del período: ' + consumo + ' m³';
+  }
+  btn.disabled = false;
+}
+
+async function registrar() {
+  const mac  = document.getElementById('inp-mac').value.trim().toUpperCase();
+  const lect = parseFloat(document.getElementById('inp-lectura').value);
+  const obs  = document.getElementById('inp-obs').value;
+  const ant  = medidorActual?.info?.ultima_lectura ?? 0;
+
+  const r = await fetch('/lector/api/registrar-lectura', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({medidor_id: mac, lectura: lect, lectura_anterior: ant, observacion: obs, usuario: 'campo_movil'})
+  });
+  const d = await r.json();
+  if (!d.ok) { toast('❌ ' + d.error); return; }
+
+  historial.unshift(d.registro);
+  const badge = document.getElementById('nav-badge');
+  badge.style.display = 'inline'; badge.textContent = historial.length;
+
+  toast('✅ Lectura registrada — Ref: ' + d.referencia);
+  limpiar();
+}
+
+function limpiar() {
+  document.getElementById('inp-mac').value = '';
+  document.getElementById('inp-lectura').value = '';
+  document.getElementById('inp-obs').value = '';
+  document.getElementById('alerta-lectura').style.display = 'none';
+  document.getElementById('btn-registrar').disabled = true;
+  ocultarChip();
+}
+
+function renderHistorial() {
+  const c = document.getElementById('lista-historial');
+  if (!historial.length) {
+    c.innerHTML = '<div style="text-align:center;color:var(--gray);padding:30px 0;font-size:14px">Aún no hay lecturas registradas</div>';
+    return;
+  }
+  c.innerHTML = historial.map(l => `
+    <div class="lectura-item">
+      <div>
+        <div class="lectura-mac">${l.medidor_iot}</div>
+        <div class="lectura-val">${l.LecturaActual} m³</div>
+        <div class="lectura-meta">Ref: ${l.referencia} · ${l.fechaHoraLectura}</div>
+      </div>
+      <span class="badge-sync">pendiente sync</span>
+    </div>`).join('');
+}
+
+async function sincronizar() {
+  toast('⟳ Sincronizando con el servidor...');
+  await new Promise(r => setTimeout(r, 1500));
+  toast('✅ Sincronización completada (' + historial.length + ' lecturas)');
+}
+</script>
+</body>
+</html>

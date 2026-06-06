@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}SEMAPA IoT — Inicio{% endblock %}
+{% block page_title %}Panel de Control{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h2>Plataforma IoT de Gestión Hídrica</h2>
+  <p>Municipio de Cochabamba · 120.000 medidores inteligentes · Modo demo sin base de datos</p>
+</div>
+
+<!-- KPIs rápidos -->
+<div class="grid grid-4" style="margin-bottom:28px">
+  <div class="card">
+    <div class="card-title">Medidores IoT</div>
+    <div class="card-value" style="color:var(--accent)">120k</div>
+    <div class="card-sub">14 radiobases LoRaWAN</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Contratos activos</div>
+    <div class="card-value" style="color:var(--accent2)">100k</div>
+    <div class="card-sub">9 categorías tarifarias</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Infraestructuras</div>
+    <div class="card-value">80k</div>
+    <div class="card-sub">56 zonas · 14 distritos</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Lecturas / mes</div>
+    <div class="card-value" style="color:var(--warn)">~86M</div>
+    <div class="card-sub">Cada hora por medidor</div>
+  </div>
+</div>
+
+<!-- Módulos -->
+<div class="section-header"><h2 style="font-size:15px">Módulos del sistema</h2></div>
+<div class="grid grid-3" style="margin-bottom:28px">
+
+  <div class="card" style="border-top:3px solid var(--accent)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-chart-area" style="color:var(--accent);font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Dashboards</div>
+        <div style="font-size:11px;color:var(--muted)">Franz · Carmen Rosa</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">3 dashboards estratégicos: Alcaldía, SEMAPA y Ciudadano con mapas coropléticos, consumo per cápita y alertas climáticas.</p>
+    <a href="/dashboard/alcaldia" class="btn" style="margin-top:14px;width:100%;justify-content:center">
+      <i class="fas fa-arrow-right"></i> Ver dashboards
+    </a>
+  </div>
+
+  <div class="card" style="border-top:3px solid #a371f7">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-bell" style="color:#a371f7;font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Mensajería</div>
+        <div style="font-size:11px;color:var(--muted)">Yesica Zenteno</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Despacho asincrónico vía RabbitMQ. Preavisos por email, SMS y WhatsApp con PDF adjunto.</p>
+    <a href="/mensajeria/" class="btn" style="margin-top:14px;width:100%;justify-content:center">
+      <i class="fas fa-arrow-right"></i> Ver mensajería
+    </a>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--danger)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-file-pdf" style="color:var(--danger);font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Preavisos PDF</div>
+        <div style="font-size:11px;color:var(--muted)">Alan · Miriam</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Generación automática en formato rollo térmico (55mm) y media carta con QR de validación.</p>
+    <a href="/pdf/" class="btn" style="margin-top:14px;width:100%;justify-content:center">
+      <i class="fas fa-arrow-right"></i> Ver PDF
+    </a>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--warn)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-tablet-alt" style="color:var(--warn);font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Tótem Autoservicio</div>
+        <div style="font-size:11px;color:var(--muted)">Flores Elia</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Kiosco digital touch sin teclado físico. Consulta de deuda por CI, medidor o contrato.</p>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <a href="/totem/" class="btn" style="flex:1;justify-content:center"><i class="fas fa-arrow-right"></i> Ver</a>
+      <a href="/totem/standalone" class="btn btn-primary" style="flex:1;justify-content:center" target="_blank"><i class="fas fa-tablet-alt"></i> Kiosco</a>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--accent2)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-qrcode" style="color:var(--accent2);font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Lector Manual</div>
+        <div style="font-size:11px;color:var(--muted)">Kevin Trujillo</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Web responsive para registro manual de lecturas por parte de operarios en campo.</p>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <a href="/lector/" class="btn" style="flex:1;justify-content:center"><i class="fas fa-arrow-right"></i> Ver</a>
+      <a href="/lector/movil" class="btn btn-success" style="flex:1;justify-content:center" target="_blank"><i class="fas fa-mobile-alt"></i> Móvil</a>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--muted);opacity:0.7">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="fas fa-database" style="color:var(--muted);font-size:20px"></i>
+      <div>
+        <div style="font-weight:600;font-size:14px">Base de Datos</div>
+        <div style="font-size:11px;color:var(--muted)">Jesus · Cristhian</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Clúster MongoDB 2 nodos. Seeds de 120k medidores, 100k contratos y lecturas IoT ×3 meses.</p>
+    <div class="btn" style="margin-top:14px;width:100%;justify-content:center;opacity:0.5;cursor:default">
+      <i class="fas fa-clock"></i> En desarrollo
+    </div>
+  </div>
+
+</div>
+
+<!-- Arquitectura -->
+<div class="section-header"><h2 style="font-size:15px">Arquitectura del sistema</h2></div>
+<div class="card">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:10px 0">
+    <div style="text-align:center;padding:12px 18px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <i class="fas fa-microchip" style="color:var(--accent);font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:11px;font-weight:600">120k Medidores IoT</div>
+      <div style="font-size:10px;color:var(--muted)">LoRaWAN</div>
+    </div>
+    <i class="fas fa-arrow-right" style="color:var(--muted)"></i>
+    <div style="text-align:center;padding:12px 18px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <i class="fas fa-tower-broadcast" style="color:var(--accent2);font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:11px;font-weight:600">14 Radiobases</div>
+      <div style="font-size:10px;color:var(--muted)">MQTT Broker</div>
+    </div>
+    <i class="fas fa-arrow-right" style="color:var(--muted)"></i>
+    <div style="text-align:center;padding:12px 18px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <i class="fas fa-layer-group" style="color:#a371f7;font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:11px;font-weight:600">RabbitMQ</div>
+      <div style="font-size:10px;color:var(--muted)">Cola mensajes</div>
+    </div>
+    <i class="fas fa-arrow-right" style="color:var(--muted)"></i>
+    <div style="text-align:center;padding:12px 18px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <i class="fab fa-python" style="color:var(--warn);font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:11px;font-weight:600">Flask API</div>
+      <div style="font-size:10px;color:var(--muted)">Microservicios</div>
+    </div>
+    <i class="fas fa-arrow-right" style="color:var(--muted)"></i>
+    <div style="text-align:center;padding:12px 18px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <i class="fas fa-leaf" style="color:var(--accent2);font-size:20px;display:block;margin-bottom:6px"></i>
+      <div style="font-size:11px;font-weight:600">MongoDB</div>
+      <div style="font-size:10px;color:var(--muted)">Clúster 2 nodos</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
