@@ -41,10 +41,6 @@ Abrir: http://localhost:5000
 ## Stack
 
 - **Backend**: Python · Flask · Blueprints
-- **BD** (pendiente DBB): MongoDB clúster 2 nodos
-- **Mensajería**: RabbitMQ · MQTT
-- **PDF**: ReportLab
-- **Frontend**: Jinja2 · Chart.js · CSS variables
 
 ## Ramas Git
 
