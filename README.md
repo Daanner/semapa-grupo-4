@@ -6,7 +6,8 @@ Plataforma distribuida de gestión inteligente del consumo de agua — Municipio
 
 | Rol | Módulo | Responsable(s) |
 |-----|--------|----------------|
-| Project Manager | Coordinación | Alberto Ayllón |
+| Project Manager | Coordinación | Kevin Danner |
+| ARquitecto SOftware | Coordinación | Alberto Ayllón |
 | DBB | `app/db/` | Jesus Murillo · Cristhian Obario |
 | Dashboard | `app/dashboard/` | Franz · Carmen Rosa |
 | Mensajería | `app/mensajeria/` | Yesica Zenteno |
@@ -41,10 +42,6 @@ Abrir: http://localhost:5000
 ## Stack
 
 - **Backend**: Python · Flask · Blueprints
-- **BD** (pendiente DBB): MongoDB clúster 2 nodos
-- **Mensajería**: RabbitMQ · MQTT
-- **PDF**: ReportLab
-- **Frontend**: Jinja2 · Chart.js · CSS variables
 
 ## Ramas Git
 
