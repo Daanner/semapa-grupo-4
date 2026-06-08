@@ -6,18 +6,17 @@
 {% block content %}
 <div class="section-header">
   <h2>Lector de Medidores · Campo</h2>
-  <p>Web responsive · MACs IoT formato <code>XX:XX:XX:XX:XX:XX</code> · Compatible con estructura CSV</p>
 </div>
 
 <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-  <a href="/lector/movil" class="btn btn-success" target="_blank"><i class="fas fa-mobile-alt"></i> Abrir vista móvil standalone</a>
+  <a href="/lector/movil" class="btn btn-success" target="_blank"><i class="fas fa-mobile-alt"></i> Abrir vista móvil</a>
 </div>
 
 <div class="grid grid-2">
   <div class="card">
     <div style="font-size:13px;font-weight:500;margin-bottom:16px">Registrar lectura</div>
     <div class="form-group">
-      <label class="form-label">MAC del medidor IoT <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">(medidor_iot del CSV)</span></label>
+      <label class="form-label">MAC del medidor IoT <span style="font-family:var(--mono);font-size:10px;color:var(--muted)"></span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="inp-medidor" class="form-control" placeholder="7D:16:0E:17:7E:AA" style="font-family:var(--mono)" oninput="this.value=this.value.toUpperCase()"/>
         <button class="btn" onclick="buscarMedidor()"><i class="fas fa-search"></i></button>
@@ -27,7 +26,7 @@
     <div id="info-medidor" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:6px;font-size:12px"></div>
 
     <div class="form-group">
-      <label class="form-label">LecturaActual (m³) <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">(campo CSV)</span></label>
+      <label class="form-label">LecturaActual (m³) <span style="font-family:var(--mono);font-size:10px;color:var(--muted)"></span></label>
       <input type="number" id="inp-lectura" class="form-control" placeholder="0.00" step="0.1" oninput="validar()"/>
     </div>
     <div id="alerta-consumo" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:6px;font-size:12px"></div>
@@ -49,14 +48,14 @@
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:500">Lecturas registradas (sesión)</div>
+      <div style="font-size:13px;font-weight:500">Lecturas registradas</div>
       <button class="btn" onclick="cargarPendientes()" style="font-size:11px;padding:4px 10px"><i class="fas fa-sync"></i></button>
     </div>
     <div id="lista-lecturas">
       <div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0">Sin lecturas aún</div>
     </div>
 
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+    <!--div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">MACs de prueba (del CSV real)</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="btn" onclick="cargarMAC('7D:16:0E:17:7E:AA')" style="justify-content:space-between;font-size:11px">
@@ -72,7 +71,7 @@
           <span style="font-family:var(--mono)">F8:D4:A4:6F:74:3A</span><span style="color:var(--muted)">Mercado Calatayud · RB-14</span>
         </button>
       </div>
-    </div>
+    </div-->
   </div>
 </div>
 {% endblock %}
@@ -124,7 +123,7 @@ function validar() {
   btn.disabled = false;
 }
 
-async function registrarLectura() {
+/*async function registrarLectura() {
   const mac  = document.getElementById('inp-medidor').value.trim().toUpperCase();
   const lect = parseFloat(document.getElementById('inp-lectura').value);
   const obs  = document.getElementById('inp-obs').value;
@@ -136,6 +135,63 @@ async function registrarLectura() {
   const res = document.getElementById('resultado-lectura');
   res.style.display='block';
   if (!d.ok) { res.innerHTML=`<div style="color:var(--danger)">${d.error}</div>`; return; }
+  res.innerHTML = `<div style="background:rgba(0,179,126,0.08);border:1px solid rgba(0,179,126,0.3);border-radius:6px;padding:12px;font-size:12px">
+    <i class="fas fa-check-circle" style="color:var(--accent2)"></i>
+    Ref: <span style="font-family:var(--mono);color:var(--accent2)">${d.referencia}</span>
+    · fechaHoraLectura: <span style="font-family:var(--mono)">${d.registro.fechaHoraLectura}</span>
+    <span class="tag tag-yellow" style="margin-left:6px">pendiente_sync</span>
+  </div>`;
+  cargarPendientes();
+}*/
+async function registrarLectura() {
+  const mac  = document.getElementById('inp-medidor').value.trim().toUpperCase();
+  const lect = parseFloat(document.getElementById('inp-lectura').value);
+  const obs  = document.getElementById('inp-obs').value;
+  const ant  = medidorActual?.info?.ultima_lectura ?? 0;
+
+  // ---- OBTENER UBICACIÓN AUTOMÁTICAMENTE ----
+  let lat = null;
+  let lon = null;
+  if ("geolocation" in navigator) {
+    try {
+      // Esperamos a que el usuario conceda permiso y se obtenga la posición
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      lat = position.coords.latitude;
+      lon = position.coords.longitude;
+      console.log(`Ubicación obtenida: ${lat}, ${lon}`);
+    } catch (error) {
+      console.warn("Error al obtener ubicación:", error.message);
+      // Si el usuario deniega o falla, seguimos sin coordenadas (lat/lon = null)
+    }
+  } else {
+    console.warn("Este navegador no soporta geolocalización.");
+  }
+
+  // Preparamos el cuerpo con los datos, incluyendo latitud y longitud
+  const body = {
+    medidor_id: mac,
+    lectura: lect,
+    lectura_anterior: ant,
+    observacion: obs,
+    usuario: 'campo_01',
+    latitud: lat,   // Puede ser null
+    longitud: lon   // Puede ser null
+  };
+
+  const d = await fetch('/lector/api/registrar-lectura', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(r => r.json());
+
+  const res = document.getElementById('resultado-lectura');
+  res.style.display = 'block';
+  if (!d.ok) {
+    res.innerHTML = `<div style="color:var(--danger)">${d.error}</div>`;
+    return;
+  }
   res.innerHTML = `<div style="background:rgba(0,179,126,0.08);border:1px solid rgba(0,179,126,0.3);border-radius:6px;padding:12px;font-size:12px">
     <i class="fas fa-check-circle" style="color:var(--accent2)"></i>
     Ref: <span style="font-family:var(--mono);color:var(--accent2)">${d.referencia}</span>

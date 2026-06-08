@@ -205,7 +205,7 @@
     </div>
 
     <!-- Medidores de prueba -->
-    <div class="card">
+    <!--div class="card">
       <div class="card-header"><h3>Medidores de prueba</h3></div>
       <div class="card-body">
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -214,7 +214,7 @@
           <button class="btn btn-outline" style="font-family:monospace;font-size:12px" onclick="cargarMAC('13:2B:00:FD:4D:C3')">13:2B:00:FD:4D:C3 — COBOCE S.A.</button>
         </div>
       </div>
-    </div>
+    </div-->
   </div>
 
   <!-- TAB 2: Historial -->
@@ -330,9 +330,29 @@ async function registrar() {
   const obs  = document.getElementById('inp-obs').value;
   const ant  = medidorActual?.info?.ultima_lectura ?? 0;
 
+  // ---- OBTENER UBICACIÓN AUTOMÁTICAMENTE ----
+  let lat = null;
+  let lon = null;
+  if ("geolocation" in navigator) {
+    try {
+      // Esperamos a que el usuario conceda permiso y se obtenga la posición
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      lat = position.coords.latitude;
+      lon = position.coords.longitude;
+      console.log(`Ubicación obtenida: ${lat}, ${lon}`);
+    } catch (error) {
+      console.warn("Error al obtener ubicación:", error.message);
+      // Si el usuario deniega o falla, seguimos sin coordenadas (lat/lon = null)
+    }
+  } else {
+    console.warn("Este navegador no soporta geolocalización.");
+  }
+
   const r = await fetch('/lector/api/registrar-lectura', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({medidor_id: mac, lectura: lect, lectura_anterior: ant, observacion: obs, usuario: 'campo_movil'})
+    body: JSON.stringify({medidor_id: mac, lectura: lect, lectura_anterior: ant, observacion: obs, usuario: 'campo_movil', latitud: lat, longitud: lon})
   });
   const d = await r.json();
   if (!d.ok) { toast('❌ ' + d.error); return; }
