@@ -78,7 +78,7 @@
     }
     .card-header h2 { font-size: 18px; font-weight: 600; color: var(--text); }
     .card-header p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
-    .card-body { padding: 24px 28px; }
+    .card-body { padding: 24px 28px; max-height: 70vh; overflow-y: auto; }
 
     /* ── Steps navigation ── */
     .steps-dots {
@@ -127,7 +127,6 @@
     .key-del  { color: var(--red); font-size: 18px; }
     .key-ok   { background: var(--blue); color: white; border-color: var(--blue); font-size: 15px; font-weight: 600; }
     .key-ok:active { background: var(--blue2); }
-    .key-wide { grid-column: span 3; padding: 16px; }
 
     /* ── Resultado ── */
     .result-name  { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
@@ -159,10 +158,18 @@
     .btn-ghost { background: var(--bg); color: var(--muted); border: 1.5px solid var(--border); margin-top: 10px; }
 
     /* ── Datos del medidor ── */
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .info-cell { background: var(--bg); border-radius: 10px; padding: 10px 14px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; margin-top: 16px;}
+    .info-cell { background: var(--bg); border-radius: 10px; padding: 10px 14px; text-align: left; }
     .info-cell .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
     .info-cell .value { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 3px; font-family: 'Courier New', monospace; }
+
+    /* ── Historial de Consumos ── */
+    .historial-box { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .historial-title { background: var(--bg); padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; text-align: left; }
+    .historial-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    .historial-table th { padding: 10px 14px; background: #fafafa; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .historial-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .historial-table tr:last-child td { border-bottom: none; }
 
     /* ── Loader ── */
     .loader {
@@ -193,7 +200,6 @@
     }
     @keyframes idle-drain { from { width: 100%; } to { width: 0%; } }
 
-    /* Modo paisaje en tablets */
     @media (orientation: landscape) and (max-height: 600px) {
       .kiosk-header { padding: 14px 28px; }
       .kiosk-logo-icon { width: 38px; height: 38px; font-size: 18px; }
@@ -203,12 +209,27 @@
       .card-header { padding: 16px 20px 12px; }
       .card-body { padding: 16px 20px; }
     }
+   @media print {
+      body, .kiosk, .kiosk-body, .kiosk-card, .card-body, .btn-full, .no-print, .result-name, .result-sub {
+        background: none !important;
+        box-shadow: none !important;
+        display: none !important;
+      }
+      #screen-resultado, #ticket-termico, #ticket-termico * {
+        display: block !important;
+      }
+      #ticket-termico {
+        width: 80mm !important; 
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
 <div class="kiosk">
 
-  <!-- Header -->
   <div class="kiosk-header">
     <div class="kiosk-logo">
       <div class="kiosk-logo-icon">💧</div>
@@ -223,7 +244,6 @@
     </div>
   </div>
 
-  <!-- Body -->
   <div class="kiosk-body">
     <div class="kiosk-card">
       <div class="card-header">
@@ -237,25 +257,24 @@
       </div>
       <div class="card-body" id="card-body">
 
-        <!-- PANTALLA 1: Menú -->
         <div id="screen-menu">
           <div class="menu-grid">
-            <div class="menu-btn" onclick="irConsulta()">
+            <div class="menu-btn" onclick="irConsulta('deuda')">
               <span class="icon">🧾</span>
               <div class="label">Consultar deuda</div>
               <div class="desc">Saldo pendiente</div>
             </div>
-            <div class="menu-btn" onclick="irConsulta()">
+            <div class="menu-btn" onclick="irConsulta('historial')">
               <span class="icon">📊</span>
               <div class="label">Mi consumo</div>
               <div class="desc">Historial de lecturas</div>
             </div>
-            <div class="menu-btn" onclick="irConsulta()">
+            <div class="menu-btn" onclick="irConsulta('imprimir')">
               <span class="icon">🖨️</span>
               <div class="label">Imprimir preaviso</div>
               <div class="desc">Descargar PDF</div>
             </div>
-            <div class="menu-btn" onclick="irConsulta()">
+            <div class="menu-btn" onclick="irConsulta('contacto')">
               <span class="icon">📞</span>
               <div class="label">Contacto SEMAPA</div>
               <div class="desc">Línea 4429700</div>
@@ -263,9 +282,8 @@
           </div>
         </div>
 
-        <!-- PANTALLA 2: Teclado -->
         <div id="screen-teclado" style="display:none">
-          <div class="input-label">Ingrese su CI, N° Medidor o Contrato</div>
+          <div class="input-label" id="label-teclado">Ingrese su CI o N° Interno de Medidor</div>
           <div class="input-display active" id="display">_ _ _ _ _ _ _ _</div>
           <div class="keypad" id="keypad">
             <div class="key" onclick="k('1')">1</div>
@@ -284,7 +302,6 @@
           <button class="btn-full btn-ghost" onclick="irMenu()">← Volver al menú</button>
         </div>
 
-        <!-- PANTALLA 3: Loading -->
         <div id="screen-loading" style="display:none">
           <div class="loader">
             <div class="spinner"></div>
@@ -292,14 +309,12 @@
           </div>
         </div>
 
-        <!-- PANTALLA 4: Resultado -->
         <div id="screen-resultado" style="display:none"></div>
 
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
   <div class="kiosk-footer">
     <span class="hint">Tótem de autoservicio · Sin teclado físico</span>
     <div class="idle-bar"><div class="idle-fill" id="idle-fill"></div></div>
@@ -321,16 +336,21 @@ tick(); setInterval(tick, 1000);
 // ── Estado ──
 let valor = '';
 let idleTimer;
+let opcionMenuSeleccionada = 'deuda'; 
 
 function resetIdle() {
   clearTimeout(idleTimer);
   const fill = document.getElementById('idle-fill');
-  fill.style.animation = 'none'; fill.offsetHeight;
-  fill.style.animation = 'idle-drain 30s linear forwards';
-  document.getElementById('idle-label').textContent = 'Sesión activa';
+  if(fill) {
+    fill.style.animation = 'none'; fill.offsetHeight;
+    fill.style.animation = 'idle-drain 30s linear forwards';
+  }
+  const lbl = document.getElementById('idle-label');
+  if(lbl) lbl.textContent = 'Sesión activa';
+  
   idleTimer = setTimeout(() => {
     irMenu();
-    document.getElementById('idle-label').textContent = 'Sesión reiniciada';
+    if(lbl) lbl.textContent = 'Sesión reiniciada';
   }, 30000);
 }
 document.addEventListener('click', resetIdle);
@@ -338,16 +358,24 @@ resetIdle();
 
 // ── Navegación ──
 function setScreen(id, title, sub, dotIdx) {
-  ['screen-menu','screen-teclado','screen-loading','screen-resultado'].forEach(s =>
-    document.getElementById(s).style.display = 'none');
-  document.getElementById(id).style.display = 'block';
+  ['screen-menu','screen-teclado','screen-loading','screen-resultado'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = 'none';
+  });
+  
+  const pantallaDestino = document.getElementById(id);
+  if (pantallaDestino) pantallaDestino.style.display = 'block';
+  
   document.getElementById('card-title').textContent = title;
   document.getElementById('card-sub').textContent   = sub;
+  
   [1,2,3].forEach(i => {
     const d = document.getElementById('dot-'+i);
-    d.classList.remove('active','done');
-    if (i < dotIdx) d.classList.add('done');
-    else if (i === dotIdx) d.classList.add('active');
+    if(d) {
+      d.classList.remove('active','done');
+      if (i < dotIdx) d.classList.add('done');
+      else if (i === dotIdx) d.classList.add('active');
+    }
   });
 }
 
@@ -356,12 +384,23 @@ function irMenu() {
   setScreen('screen-menu','¿Qué desea consultar?','Toque una opción para continuar', 1);
 }
 
-function irConsulta() {
+function irConsulta(opcion) {
   valor = '';
+  if (opcion) opcionMenuSeleccionada = opcion; 
+  const labelTeclado = document.getElementById('label-teclado');
+  if (labelTeclado) {
+    if (opcionMenuSeleccionada === 'deuda') {
+      labelTeclado.textContent = 'Ingrese su CI o N° Contrato para consultar Deuda';
+    } else if (opcionMenuSeleccionada === 'historial') {
+      labelTeclado.textContent = 'Ingrese su N° Interno de Medidor para ver Consumo';
+    } else if (opcionMenuSeleccionada === 'imprimir') {
+      labelTeclado.textContent = 'Ingrese su N° de Medidor para imprimir su ticket';
+    }
+  }
+  
   updateDisplay();
-  setScreen('screen-teclado','Identificación','Sin teclado físico — use los botones', 2);
+  setScreen('screen-teclado','Identificación','Ingrese los dígitos usando la pantalla táctil', 2);
 }
-
 // ── Teclado ──
 function k(v)  { if (valor.length < 12) { valor += v; updateDisplay(); } }
 function del() { valor = valor.slice(0,-1); updateDisplay(); }
@@ -371,18 +410,66 @@ function updateDisplay() {
   d.textContent = valor || '_ _ _ _ _ _ _ _';
 }
 
+// ── Consultar API Primaria ──
 async function buscar() {
   if (!valor) return;
   setScreen('screen-loading','Consultando...','Por favor espere', 2);
   try {
     const r = await fetch('/totem/api/consultar', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ci: valor})
+      method:'POST', 
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ ci: valor })
     });
     const d = await r.json();
     if (!d.ok) { mostrarError(d.error); return; }
+    
     mostrarResultado(d.datos);
-  } catch(e) { mostrarError('Error de conexión'); }
+    
+    if (opcionMenuSeleccionada === 'historial') {
+      consultarHistorial(d.datos.medidor_id); 
+    }
+  } catch(e) { mostrarError('Error de conexión con el servidor central'); }
+}
+
+// ── Consultar Historial (Endpoint Vinculado) ──
+async function consultarHistorial(medidorId) {
+  try {
+    const r = await fetch('/totem/api/historial/' + medidorId);
+    const h = await r.json();
+    
+    const contenedorHistorial = document.getElementById('tabla-historial-iot');
+    if (!contenedorHistorial) return;
+
+    if (h.ok && h.historial.length > 0) {
+      let filas = h.historial.map(row => {
+        return '<tr>' +
+          '<td>' + row.fecha_hora + '</td>' +
+          '<td>' + row.lectura_anterior + ' m³</td>' +
+          '<td>' + row.lectura_actual + ' m³</td>' +
+          '<td><strong>' + row.consumo_m3 + ' m³</strong></td>' +
+        '</tr>';
+      }).join('');
+      
+      contenedorHistorial.innerHTML = `
+        <table class="historial-table">
+          <thead>
+            <tr>
+              <th>Fecha/Hora</th>
+              <th>Ant.</th>
+              <th>Act.</th>
+              <th>Consumo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filas}
+          </tbody>
+        </table>`;
+    } else {
+      contenedorHistorial.innerHTML = '<div style="padding:14px;font-size:12px;color:var(--muted);text-align:center;">No existen registros históricos para este dispositivo.</div>';
+    }
+  } catch(err) {
+    console.error("Error al mapear telemetría:", err);
+  }
 }
 
 function mostrarError(msg) {
@@ -391,37 +478,116 @@ function mostrarError(msg) {
     <div style="text-align:center;padding:20px 0">
       <div style="font-size:48px;margin-bottom:14px">❌</div>
       <div style="font-size:16px;font-weight:600;color:#c62828;margin-bottom:8px">${msg}</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">CI válidos de prueba: 5234891 · 7891234 · NIT-1234</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Pruebe ingresando los identificadores creados (Ej. 1, 2, 3 o el CI)</div>
       <button class="btn-full btn-blue" onclick="irConsulta()">Intentar de nuevo</button>
       <button class="btn-full btn-ghost" onclick="irMenu()">Volver al menú</button>
     </div>`;
 }
 
 function mostrarResultado(d) {
-  setScreen('screen-resultado','Resultado de consulta','', 3);
+  setScreen('screen-resultado', 'Resultado de consulta', '', 3);
   const tieneDeuda = d.deuda_total > 0;
-  const cuotas = (d.cuotas || []).map(c => `
-    <div class="cuota-row">
-      <span style="font-weight:500">${c.periodo}</span>
-      <span style="font-family:monospace;font-weight:600">Bs ${c.importe.toFixed(2)}</span>
-      <span class="${c.estado==='vencida'?'badge-vencida':'badge-pend'}">${c.estado}</span>
-    </div>`).join('');
+  
+  let bloqueDeudaFinanciera = '';
+  let bloqueDetalleConsumoIoT = '';
+  let bloqueTicketImpresion = '';
 
-  document.getElementById('screen-resultado').innerHTML = `
-    <div class="result-name">${d.nombre}</div>
-    <div class="result-sub">${d.contrato} · Radiobase ${d.radiobase}</div>
-    <div class="result-deuda ${tieneDeuda?'deuda-con':'deuda-sin'}">
-      <div class="deuda-monto">Bs ${d.deuda_total.toFixed(2)}</div>
-      <div class="deuda-label">${tieneDeuda?'Deuda total pendiente':'Sin deudas pendientes ✓'}</div>
-    </div>
-    <div class="info-grid">
-      <div class="info-cell"><div class="label">Medidor IoT</div><div class="value" style="font-size:11px">${d.medidor_iot}</div></div>
-      <div class="info-cell"><div class="label">Consumo m³</div><div class="value">${d.consumo_m3} m³</div></div>
-      <div class="info-cell"><div class="label">Lectura anterior</div><div class="value">${d.lecturaAnterior}</div></div>
-      <div class="info-cell"><div class="label">Lectura actual</div><div class="value">${d.LecturaActual}</div></div>
-    </div>
-    ${cuotas ? `<div style="margin-bottom:14px">${cuotas}</div>` : ''}
-    <button class="btn-full btn-blue" onclick="irMenu()">🏠 Nueva consulta</button>`;
+  if (opcionMenuSeleccionada === 'deuda') {
+    const cuotas = (d.cuotas || []).map(c => {
+      const claseBadge = c.estado === 'vencida' ? 'badge-vencida' : 'badge-pend';
+      return '<div class="cuota-row">' +
+        '<span style="font-weight:500">' + c.periodo + '</span>' +
+        '<span style="font-family:monospace;font-weight:600">Bs ' + c.importe.toFixed(2) + '</span>' +
+        '<span class="' + claseBadge + '">' + c.estado + '</span>' +
+      '</div>';
+    }).join('');
+
+    const claseDeuda = tieneDeuda ? 'deuda-con' : 'deuda-sin';
+    const labelDeuda = tieneDeuda ? 'Deuda total pendiente' : 'Sin deudas pendientes ✓';
+
+    bloqueDeudaFinanciera = 
+      '<div class="result-deuda ' + claseDeuda + '">' +
+        '<div class="deuda-monto">Bs ' + d.deuda_total.toFixed(2) + '</div>' +
+        '<div class="deuda-label">' + labelDeuda + '</div>' +
+      '</div>' +
+      (cuotas ? '<div style="margin-bottom:20px">' + cuotas + '</div>' : '');
+
+  } else if (opcionMenuSeleccionada === 'historial') {
+    bloqueDetalleConsumoIoT = 
+      '<div class="info-grid">' +
+        '<div class="info-cell">' +
+          '<div class="label">MAC Medidor</div>' +
+          '<div class="value" style="font-size:11px">' + (d.medidor_iot || 'S/N') + '</div>' +
+        '</div>' +
+        '<div class="info-cell">' +
+          '<div class="label">Último Consumo</div>' +
+          '<div class="value">' + (d.consumo_m3 || 0) + ' m³</div>' +
+        '</div>' +
+        '<div class="info-cell">' +
+          '<div class="label">Lectura anterior</div>' +
+          '<div class="value">' + (d.lecturaAnterior || 0) + ' m³</div>' +
+        '</div>' +
+        '<div class="info-cell">' +
+          '<div class="label">Lectura actual</div>' +
+          '<div class="value">' + (d.LecturaActual || 0) + ' m³</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="historial-box" style="margin-top:20px; margin-bottom:20px;">' +
+        '<div class="historial-title">Historial de lecturas de telemetría</div>' +
+        '<div id="tabla-historial-iot">' +
+          '<div class="loader"><div class="spinner" style="width:24px;height:24px;border-width:2px;"></div></div>' +
+        '</div>' +
+      '</div>';
+
+ } else if (opcionMenuSeleccionada === 'imprimir') {
+    // CASO: Generación de ticket térmico para preaviso
+    const filasCuotasTicket = (d.cuotas || []).map(c => {
+      return '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">' +
+        '<span>Período ' + c.periodo + ' (' + c.estado + ')</span>' +
+        '<span>Bs ' + c.importe.toFixed(2) + '</span>' +
+      '</div>';
+    }).join('');
+
+    bloqueTicketImpresion = 
+      '<div class="ticket-preaviso" id="ticket-termico" style="background:#fff; color:#000; padding:16px; border:1px dashed #cfd8dc; border-radius:8px; font-family:\'Courier New\', monospace; text-align:left; margin-top:10px;">' +
+        '<div style="text-align:center; margin-bottom:14px; border-bottom:1px dashed #000; padding-bottom:8px;">' +
+          '<h3 style="margin:0 0 4px 0; color:#000;">SEMAPA Cochabamba</h3>' +
+          '<small style="font-size:11px; display:block; opacity:0.8;">Preaviso de Cobro No Factura</small>' +
+          '<small style="font-size:11px;">Emisión: ' + new Date().toLocaleDateString('es-BO') + '</small>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><strong>Abonado:</strong> <span>' + d.nombre + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><strong>Contrato:</strong> <span>' + d.contrato + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><strong>Medidor:</strong> <span>' + (d.medidor_iot || 'S/N') + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><strong>Consumo m³:</strong> <span>' + (d.consumo_m3 || 0) + ' m³</span></div>' +
+        '<div style="border-bottom:1px dashed #000; margin:8px 0;"></div>' +
+        
+        (filasCuotasTicket || '<div style="font-size:13px; text-align:center;">Sin deudas pendientes</div>') +
+        
+        '<div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; border-top:1px dashed #000; margin-top:10px; padding-top:6px;">' +
+          '<span>TOTAL DEUDA:</span>' +
+          '<span>Bs ' + d.deuda_total.toFixed(2) + '</span>' +
+        '</div>' +
+        '<div style="text-align:center; margin-top:15px; font-size:11px; opacity:0.8;">' +
+          '<p style="margin:0 0 2px 0;">Cochabamba - Bolivia</p>' +
+          '<p style="margin:0;">Evite cortes. Pague a tiempo.</p>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn-full btn-blue no-print" style="margin-top:14px;" onclick="dispararImpresion()"><span class="icon">🖨️</span> Mandar a Impresora</button>';
+  }
+  document.getElementById('screen-resultado').innerHTML = 
+    '<div class="result-name">' + d.nombre + '</div>' +
+    '<div class="result-sub">Contrato: ' + d.contrato + ' · Base: ' + (d.radiobase || 'Sin asignar') + '</div>' +
+    bloqueDeudaFinanciera +
+    bloqueDetalleConsumoIoT +
+    bloqueTicketImpresion +
+    '<button class="btn-full btn-blue no-print" style="margin-top:10px" onclick="irMenu()">🏠 Nueva consulta</button>';
+}
+
+function dispararImpresion() {
+  window.focus();
+  setTimeout(function() {
+    window.print();
+  }, 200);
 }
 
 irMenu();
