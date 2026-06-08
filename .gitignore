@@ -1,19 +1,26 @@
+# Secretos / configuración local (NUNCA subir)
+.env
+.env.local
+instance/
+
 # Entorno virtual
-.venv/
 venv/
+.venv/
 env/
 
-# Archivos temporales de Python
+# Caché de Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
 
-# Configuración local y credenciales secretas
-.env
-instance/
+# Base de datos local
+*.db
+*.sqlite3
 
-# IDEs y Editores (opcional)
+# Archivos de editor / SO
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db

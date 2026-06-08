@@ -33,6 +33,20 @@ LECTURAS = [
     {"medidor_iot": "F8:D4:A4:6F:74:3A", "lecturaAnterior": 3660, "LecturaActual": 3678, "fechaHoraLectura": "02/28/26 22:41", "radiobase": 14, "fecha_pago": "03/16/26 15:20"},
 ]
 
+# ── Usuarios (relacionados con MEDIDORES por el campo CI) ──────────────
+# Para que mensajería pueda enviar notificaciones reales necesitamos
+# el celular y el email de cada usuario. La relación es: medidor.ci == usuario.ci
+USUARIOS = {
+    "5234891":  {"nombre": "Juan Carlos Mendoza", "celular": "+59171234567", "email": "yeseizenteno@gmail.com"},
+    "7891234":  {"nombre": "María Flores Quispe",  "celular": "+59172345678", "email": "maria.flores@example.com"},
+    "NIT-1234": {"nombre": "Empresa COBOCE S.A.",  "celular": "+59173456789", "email": "contacto@coboce.example.com"},
+}
+
+def get_usuario_by_ci(ci: str) -> dict | None:
+    """Devuelve los datos de contacto (celular/email) de un usuario por su CI."""
+    return USUARIOS.get(ci)
+
+
 def get_consumo(lectura: dict) -> int:
     """Consumo del período = LecturaActual - lecturaAnterior"""
     try:
