@@ -15,7 +15,7 @@
     background: linear-gradient(135deg, #0a3d62 0%, #1a5276 100%);
     padding: 24px; text-align: center;
   }
-  .totem-body { padding: 24px; }
+  .totem-body { padding: 24px; max-height: 550px; overflow-y: auto; } 
   .totem-btn {
     display: block; width: 100%; padding: 14px;
     background: var(--bg3); border: 1px solid var(--border);
@@ -40,6 +40,14 @@
   .key:active, .key.pressed { background: rgba(31,156,240,0.2); transform: scale(0.95); }
   .key-wide { grid-column: span 2; }
   .key-clear { color: var(--danger); }
+
+  /* Estilos para los nuevos bloques de telemetría e historial */
+  .info-grid-totem { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+  .info-cell-totem { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: left; }
+  .info-cell-totem .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .info-cell-totem .val { font-size: 13px; font-weight: 600; margin-top: 2px; font-family: var(--mono); }
+  .historial-box-totem { margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .historial-title-totem { background: var(--bg3); padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; text-align: left; border-bottom: 1px solid var(--border); }
 </style>
 {% endblock %}
 
@@ -50,7 +58,6 @@
 </div>
 
 <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
-  <!-- Tótem simulado -->
   <div style="flex:1;min-width:280px">
     <div class="totem-frame">
       <div class="totem-header">
@@ -60,32 +67,30 @@
       </div>
 
       <div class="totem-body" id="totem-pantalla">
-        <!-- Pantalla inicio -->
         <div id="screen-inicio">
           <div style="text-align:center;margin-bottom:20px">
             <div style="font-size:14px;font-weight:500;margin-bottom:4px">¿Qué desea consultar?</div>
             <div style="font-size:12px;color:var(--muted)">Toque una opción</div>
           </div>
-          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+          <button class="totem-btn" onclick="irConsulta('deuda')">
             <i class="fas fa-file-invoice-dollar" style="margin-right:8px;color:var(--warn)"></i>
             Consultar deuda
           </button>
-          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+          <button class="totem-btn" onclick="irConsulta('historial')">
             <i class="fas fa-history" style="margin-right:8px;color:var(--accent)"></i>
             Historial de consumo
           </button>
-          <button class="totem-btn" onclick="irPantalla('screen-consulta')">
+          <button class="totem-btn" onclick="irConsulta('imprimir')">
             <i class="fas fa-file-pdf" style="margin-right:8px;color:var(--danger)"></i>
             Imprimir preaviso
           </button>
         </div>
 
-        <!-- Pantalla consulta -->
         <div id="screen-consulta" style="display:none">
           <button onclick="irPantalla('screen-inicio')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0">
             <i class="fas fa-arrow-left"></i> Volver
           </button>
-          <div style="font-size:13px;font-weight:500;margin-bottom:10px">Ingrese su CI o N° Medidor</div>
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px" id="label-teclado">Ingrese su CI o N° Medidor</div>
           <input type="text" id="totem-ci" class="totem-input" placeholder="_ _ _ _ _ _ _ _" readonly/>
           <div class="keypad">
             {% for n in range(1,10) %}
@@ -100,13 +105,11 @@
           </button>
         </div>
 
-        <!-- Resultado -->
         <div id="screen-resultado" style="display:none"></div>
       </div>
     </div>
   </div>
 
-  <!-- Datos de prueba -->
   <div style="flex:1;min-width:240px">
     <div class="card">
       <div style="font-size:13px;font-weight:500;margin-bottom:12px">CIs de prueba</div>
@@ -127,11 +130,34 @@
 {% endblock %}
 
 {% block extra_js %}
+{% raw %}
 <script>
+let opcionMenuSeleccionada = 'deuda'; // Rastrea si se pulsa deuda o consumo
+
 function irPantalla(id) {
   ['screen-inicio','screen-consulta','screen-resultado'].forEach(s => {
-    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+    const el = document.getElementById(s);
+    if (el) el.style.display = s === id ? 'block' : 'none';
   });
+}
+
+function irConsulta(opcion) {
+  valor = '';
+  document.getElementById('totem-ci').value = ''; 
+  
+  if (opcion) opcionMenuSeleccionada = opcion;
+
+  const labelTeclado = document.getElementById('label-teclado');
+  if (labelTeclado) {
+    if (opcionMenuSeleccionada === 'deuda') {
+      labelTeclado.textContent = 'Ingrese su CI o N° Contrato para consultar Deuda';
+    } else if (opcionMenuSeleccionada === 'historial') {
+      labelTeclado.textContent = 'Ingrese su N° Interno de Medidor para ver Consumo';
+    } else if (opcionMenuSeleccionada === 'imprimir') {
+      labelTeclado.textContent = 'Ingrese su N° de Medidor para imprimir su ticket';
+    }
+  }
+  irPantalla('screen-consulta'); 
 }
 
 function presionarTecla(v) {
@@ -145,6 +171,11 @@ function borrarTecla() {
 }
 
 function usarCI(ci) {
+  opcionMenuSeleccionada = 'deuda'; // Panel de prueba fuerza por defecto vista de deuda
+  
+  const labelTeclado = document.getElementById('label-teclado');
+  if (labelTeclado) labelTeclado.textContent = 'Ingrese su CI o N° Contrato para consultar Deuda';
+  
   irPantalla('screen-consulta');
   document.getElementById('totem-ci').value = ci;
 }
@@ -155,43 +186,179 @@ async function buscar() {
   irPantalla('screen-resultado');
   document.getElementById('screen-resultado').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
 
-  const d = await fetch('/totem/api/consultar', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ci})
-  }).then(r => r.json());
+  try {
+    const r = await fetch('/totem/api/consultar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ci})
+    });
+    const d = await r.json();
 
-  if (!d.ok) {
+    if (!d.ok) {
+      document.getElementById('screen-resultado').innerHTML = `
+        <button onclick="irPantalla('screen-consulta')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
+        <div style="text-align:center;padding:20px;color:var(--danger)"><i class="fas fa-exclamation-circle fa-2x" style="margin-bottom:8px;display:block"></i>${d.error}</div>`;
+      return;
+    }
+
+    mostrarResultadoPantalla(d.datos);
+    
+    // Solo realizamos la consulta al historial IoT si elegimos la pestaña de consumo
+    if (opcionMenuSeleccionada === 'historial') {
+      consultarHistorialTotem(d.datos.medidor_id);
+    }
+
+  } catch(e) {
     document.getElementById('screen-resultado').innerHTML = `
       <button onclick="irPantalla('screen-consulta')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
-      <div style="text-align:center;padding:20px;color:var(--danger)"><i class="fas fa-exclamation-circle fa-2x" style="margin-bottom:8px;display:block"></i>${d.error}</div>`;
-    return;
+      <div style="text-align:center;padding:20px;color:var(--danger)"><i class="fas fa-wifi fa-2x" style="margin-bottom:8px;display:block"></i>Error de comunicación con el servidor.</div>`;
+  }
+}
+
+function mostrarResultadoPantalla(datos) {
+  const tieneDeuda = datos.deuda_total > 0;
+  
+  let bloqueDeudaHTML = '';
+  let infoGridHTML = '';
+  let tablaCuotasHTML = '';
+  let bloqueHistorialHTML = '';
+  let bloqueTicketHTML = ''; // Nueva variable para controlar el preaviso
+
+  if (opcionMenuSeleccionada === 'deuda') {
+    // Renderizado exclusivo para la opción de DEUDA
+    const cuotas = datos.cuotas.map(c => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px">${c.periodo}</td>
+        <td style="font-family:var(--mono);font-size:12px;text-align:right">Bs ${c.importe.toFixed(2)}</td>
+        <td><span class="tag ${c.estado==='vencida'?'tag-red':c.estado==='cargo_mora'?'tag-yellow':'tag-blue'}">${c.estado}</span></td>
+      </tr>`).join('');
+
+    bloqueDeudaHTML = `
+      <div style="text-align:center;padding:16px;background:${tieneDeuda?'rgba(248,81,73,0.1)':'rgba(0,179,126,0.1)'};border-radius:10px;margin-bottom:16px">
+        <div style="font-size:28px;font-weight:700;font-family:var(--mono);color:${tieneDeuda?'var(--danger)':'var(--accent2)'}">
+          Bs ${datos.deuda_total.toFixed(2)}
+        </div>
+        <div style="font-size:12px;color:var(--muted)">${tieneDeuda?'Deuda pendiente':'Sin deudas ✓'}</div>
+      </div>`;
+      
+    tablaCuotasHTML = cuotas ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px"><thead><tr><th>Período</th><th style="text-align:right">Importe</th><th>Estado</th></tr></thead><tbody>${cuotas}</tbody></table>` : '';
+  
+  } else if (opcionMenuSeleccionada === 'historial') {
+    // Renderizado exclusivo para la opción de HISTORIAL / CONSUMO
+    infoGridHTML = `
+      <div class="info-grid-totem">
+        <div class="info-cell-totem"><div class="lbl">MAC Medidor</div><div class="val" style="font-size:11px">${datos.medidor_iot || 'S/N'}</div></div>
+        <div class="info-cell-totem"><div class="lbl">Último Consumo</div><div class="val">${datos.consumo_m3 || 0} m³</div></div>
+        <div class="info-cell-totem"><div class="lbl">Lectura anterior</div><div class="val">${datos.lecturaAnterior || 0}</div></div>
+        <div class="info-cell-totem"><div class="lbl">Lectura actual</div><div class="val">${datos.LecturaActual || 0}</div></div>
+      </div>`;
+      
+    bloqueHistorialHTML = `
+      <div class="historial-box-totem">
+        <div class="historial-title-totem">Historial de Lecturas IoT</div>
+        <div id="tabla-historial-totem" style="background:var(--bg2); padding:10px; font-size:11px;">
+          <div style="text-align:center;padding:10px;"><i class="fas fa-spinner fa-spin"></i> Cargando telemetría...</div>
+        </div>
+      </div>`;
+
+  } else if (opcionMenuSeleccionada === 'imprimir') {
+    // CASO NUEVO SEPARADO: Renderizado para el ticket térmico
+    const filasCuotasTicket = (datos.cuotas || []).map(c => `
+      <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#000;">
+        <span>Período ${c.periodo} (${c.estado})</span>
+        <span>Bs ${c.importe.toFixed(2)}</span>
+      </div>
+    `).join('');
+
+    bloqueTicketHTML = `
+      <div class="ticket-preaviso" id="ticket-termico" style="background:#fff; color:#000; padding:16px; border:1px dashed #cfd8dc; border-radius:8px; font-family:'Courier New', monospace; text-align:left; margin-top:10px;">
+        <div style="text-align:center; margin-bottom:14px; border-bottom:1px dashed #000; padding-bottom:8px;">
+          <h3 style="margin:0 0 4px 0; color:#000;">SEMAPA Cochabamba</h3>
+          <small style="font-size:11px; display:block; opacity:0.8; color:#000;">Preaviso de Cobro No Factura</small>
+          <small style="font-size:11px; color:#000;">Emisión: ${new Date().toLocaleDateString('es-BO')}</small>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#000;"><strong>Abonado:</strong> <span>${datos.nombre}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#000;"><strong>Contrato:</strong> <span>${datos.contrato}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#000;"><strong>Medidor:</strong> <span>${datos.medidor_iot || 'S/N'}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#000;"><strong>Consumo m³:</strong> <span>${datos.consumo_m3 || 0} m³</span></div>
+        <div style="border-bottom:1px dashed #000; margin:8px 0;"></div>
+        
+        ${filasCuotasTicket || '<div style="font-size:13px; text-align:center; color:#000;">Sin deudas pendientes</div>'}
+        
+        <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; border-top:1px dashed #000; margin-top:10px; padding-top:6px; color:#000;">
+          <span>TOTAL DEUDA:</span>
+          <span>Bs ${datos.deuda_total.toFixed(2)}</span>
+        </div>
+        <div style="text-align:center; margin-top:15px; font-size:11px; opacity:0.8; color:#000;">
+          <p style="margin:0 0 2px 0;">Cochabamba - Bolivia</p>
+          <p style="margin:0;">Evite cortes. Pague a tiempo.</p>
+        </div>
+      </div>
+      <button class="totem-btn btn-blue no-print" style="margin-top:14px; width:100%; background:var(--blue); color:white;" onclick="dispararImpresion()">
+        <i class="fas fa-print"></i> Mandar a Impresora
+      </button>
+    `;
   }
 
-  const datos = d.datos;
-  const tieneDeuda = datos.deuda_total > 0;
-  const cuotas = datos.cuotas.map(c => `
-    <tr>
-      <td style="font-family:var(--mono);font-size:12px">${c.periodo}</td>
-      <td style="font-family:var(--mono);font-size:12px;text-align:right">Bs ${c.importe.toFixed(2)}</td>
-      <td><span class="tag ${c.estado==='vencida'?'tag-red':c.estado==='cargo_mora'?'tag-yellow':'tag-blue'}">${c.estado}</span></td>
-    </tr>`).join('');
-
+  // Pintamos la respuesta estructurada sin solapar elementos
   document.getElementById('screen-resultado').innerHTML = `
-    <button onclick="irPantalla('screen-consulta')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
-    <div style="text-align:center;margin-bottom:16px">
+    <button onclick="irPantalla('screen-consulta')" class="no-print" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;padding:0"><i class="fas fa-arrow-left"></i> Volver</button>
+    
+    <div class="no-print" style="text-align:center;margin-bottom:16px">
       <div style="font-size:15px;font-weight:600">${datos.nombre}</div>
-      <div style="font-size:11px;color:var(--muted)">${datos.contrato} · ${datos.medidor}</div>
+      <div style="font-size:11px;color:var(--muted)">Contrato: ${datos.contrato} · Base: ${datos.radiobase || 'Sin asignar'}</div>
     </div>
-    <div style="text-align:center;padding:16px;background:${tieneDeuda?'rgba(248,81,73,0.1)':'rgba(0,179,126,0.1)'};border-radius:10px;margin-bottom:16px">
-      <div style="font-size:28px;font-weight:700;font-family:var(--mono);color:${tieneDeuda?'var(--danger)':'var(--accent2)'}">
-        Bs ${datos.deuda_total.toFixed(2)}
-      </div>
-      <div style="font-size:12px;color:var(--muted)">${tieneDeuda?'Deuda pendiente':'Sin deudas ✓'}</div>
-    </div>
-    ${cuotas ? `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>Período</th><th style="text-align:right">Importe</th><th>Estado</th></tr></thead><tbody>${cuotas}</tbody></table>` : ''}
-    <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center" onclick="irPantalla('screen-inicio')">
+    
+    ${bloqueDeudaHTML}
+    ${infoGridHTML}
+    ${tablaCuotasHTML}
+    ${bloqueHistorialHTML}
+    ${bloqueTicketHTML}
+
+    <button class="totem-btn no-print" style="width:100%;margin-top:14px;justify-content:center;background:var(--bg);color:var(--text);" onclick="irPantalla('screen-inicio')">
       <i class="fas fa-home"></i> Nueva consulta
-    </button>`;
+    </button>
+  `;
+}
+
+async function consultarHistorialTotem(medidorId) {
+  try {
+    const r = await fetch('/totem/api/historial/' + medidorId);
+    const h = await r.json();
+    const caja = document.getElementById('tabla-historial-totem');
+    if (!caja) return;
+
+    if (h.ok && h.historial.length > 0) {
+      let filas = h.historial.map(function(row) {
+        return '<tr>' +
+          '<td>' + row.fecha_hora + '</td>' +
+          '<td>' + row.lectura_anterior + '</td>' +
+          '<td>' + row.lectura_actual + '</td>' +
+          '<td><strong>' + row.consumo_m3 + ' m³</strong></td>' +
+        '</tr>';
+      }).join('');
+      caja.innerHTML = 
+        '<table style="width:100%; border-collapse:collapse; text-align:left; font-size:11px;">' +
+          '<thead>' +
+            '<tr style="border-bottom:1px solid var(--border)">' +
+              '<th>Fecha</th><th>Ant.</th><th>Act.</th><th>Cons.</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + filas + '</tbody>' +
+        '</table>';
+    } else {
+      caja.innerHTML = '<div style="text-align:center;color:var(--muted);padding:6px;">Sin registros de telemetría pasados.</div>';
+    }
+  } catch(e) {
+    console.error("Error cargando historial:", e);
+  }
+}
+
+function dispararImpresion() {
+  window.focus();
+  setTimeout(function() {
+    window.print();
+  }, 200);
 }
 </script>
+{% endraw %}
 {% endblock %}
