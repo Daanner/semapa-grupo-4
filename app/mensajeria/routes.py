@@ -1,6 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify
 import datetime, random
-from app.mock_data import MEDIDORES, LECTURAS, get_consumo, calcular_importe, TARIFAS
+from app.mock_data import (
+    MEDIDORES, LECTURAS, get_consumo, calcular_importe, TARIFAS,
+    get_usuario_by_ci,
+)
+from app.mensajeria.email_service import enviar_email
 
 mensajeria_bp = Blueprint("mensajeria", __name__)
 
@@ -51,7 +55,37 @@ def api_enviar():
     preaviso = _build_preaviso(mac, periodo)
     if not preaviso:
         return jsonify({"ok": False, "error": "Medidor / contrato no encontrado"}), 404
-    return jsonify({"ok": True, "canal": canal, "preaviso": preaviso,
+
+    # ── Buscar al usuario por CI y enviar la notificación real ──────────
+    usuario = get_usuario_by_ci(preaviso["ci"])
+    if not usuario:
+        return jsonify({"ok": False,
+                        "error": f"No hay datos de contacto para el CI {preaviso['ci']}"}), 404
+
+    envio = {"modo": "no-enviado", "detalle": f"Canal '{canal}' no soportado para envío real"}
+    if canal == "email":
+        html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px">
+              <h2 style="color:#0277bd">SEMAPA · Preaviso de consumo</h2>
+              <p>{preaviso['mensaje']}</p>
+              <table style="border-collapse:collapse;margin-top:12px">
+                <tr><td><b>Contrato</b></td><td>{preaviso['contrato']}</td></tr>
+                <tr><td><b>Período</b></td><td>{preaviso['periodo']}</td></tr>
+                <tr><td><b>Consumo</b></td><td>{preaviso['consumo_m3']} m³</td></tr>
+                <tr><td><b>Importe</b></td><td>Bs {preaviso['importe']:.2f}</td></tr>
+              </table>
+              <p style="color:#888;font-size:12px;margin-top:16px">
+                Mensaje automático de la plataforma SEMAPA IoT.</p>
+            </div>"""
+        envio = enviar_email(
+            destinatario=usuario["email"],
+            asunto=f"SEMAPA · Preaviso {preaviso['periodo']} — Contrato {preaviso['contrato']}",
+            html=html,
+            nombre_dest=usuario["nombre"],
+        )
+
+    return jsonify({"ok": envio.get("ok", True), "canal": canal, "preaviso": preaviso,
+                    "usuario": usuario, "envio": envio,
                     "cola": "semapa.preavisos", "estado": "encolado"})
 
 @mensajeria_bp.route("/api/estado-cola")

@@ -10,6 +10,13 @@ class Config:
     CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
     DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
+    # ── Correo (Gmail SMTP - gratis, sin servicios externos) ──
+    SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER", "")          # tu correo Gmail
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # contraseña de aplicación (16 chars)
+    MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "SEMAPA")
+
 class DevelopmentConfig(Config):
     DEBUG = True
 

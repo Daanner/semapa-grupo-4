@@ -26,9 +26,6 @@
       <label class="form-label">Canal de envío</label>
       <select id="inp-canal" class="form-control">
         <option value="email">📧  Email</option>
-        <option value="sms">📱  SMS</option>
-        <option value="whatsapp">💬  WhatsApp</option>
-        <option value="todos">🔔  Todos los canales</option>
       </select>
     </div>
     <button class="btn btn-primary" style="width:100%" onclick="enviar()">
@@ -107,6 +104,14 @@ async function enviar() {
   }
 
   const p = data.preaviso;
+  const e = data.envio || {};
+  const emailInfo = (canal === 'email')
+    ? `<div style="margin-top:10px;background:var(--bg3);border-radius:6px;padding:10px;font-size:11px">
+         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Correo</span><span style="font-family:var(--mono)">${e.destino || '—'}</span></div>
+         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Envío</span><span class="tag ${e.modo === 'real' ? 'tag-green' : 'tag-blue'}">${e.modo === 'real' ? '✓ enviado de verdad' : e.modo || '—'}</span></div>
+         <div style="color:var(--muted);margin-top:4px">${e.detalle || ''}</div>
+       </div>`
+    : '';
   res.innerHTML = `
     <div style="background:rgba(0,179,126,0.08);border:1px solid rgba(0,179,126,0.3);border-radius:6px;padding:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -114,12 +119,8 @@ async function enviar() {
         <span style="font-size:13px;font-weight:500">Mensaje encolado correctamente</span>
       </div>
       <div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:12px;color:var(--text);line-height:1.7;font-style:italic">"${p.mensaje}"</div>
-      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;font-size:11px">
-        <span class="tag tag-blue">Canal: ${canal.toUpperCase()}</span>
-        <span class="tag tag-green">Estado: encolado</span>
-        <span style="color:var(--muted)">Cola: semapa.preavisos</span>
-        <span style="color:var(--muted)">${p.enviado_en}</span>
-      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">${p.enviado_en}</div>
+      ${emailInfo}
     </div>`;
   cargarCola();
 }
